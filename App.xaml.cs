@@ -11,19 +11,28 @@ namespace BiochemSimulator
             AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
             DispatcherUnhandledException += OnDispatcherUnhandledException;
 
-            // Show profile selection window first
-            var profileWindow = new ProfileSelectionWindow();
-            var result = profileWindow.ShowDialog();
+            try
+            {
+                // Show profile selection window first
+                var profileWindow = new ProfileSelectionWindow();
+                var result = profileWindow.ShowDialog();
 
-            if (result == true && profileWindow.SelectedProfile != null)
-            {
-                // Profile selected, launch main game window
-                var mainWindow = new MainWindow(profileWindow.SelectedProfile);
-                mainWindow.Show();
+                if (result == true && profileWindow.SelectedProfile != null)
+                {
+                    // Profile selected, launch main game window
+                    var mainWindow = new MainWindow(profileWindow.SelectedProfile);
+                    mainWindow.Show();
+                }
+                else
+                {
+                    // No profile selected or user cancelled, exit application
+                    Shutdown();
+                }
             }
-            else
+            catch (Exception ex)
             {
-                // No profile selected or user cancelled, exit application
+                MessageBox.Show($"Startup error: {ex.Message}\n\nStack trace:\n{ex.StackTrace}",
+                    "Application Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 Shutdown();
             }
         }

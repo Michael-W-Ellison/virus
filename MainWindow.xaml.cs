@@ -63,27 +63,38 @@ namespace BiochemSimulator
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            double screenWidth = SystemParameters.PrimaryScreenWidth;
-            double screenHeight = SystemParameters.PrimaryScreenHeight;
-
-            _gameManager = new GameManager(screenWidth, screenHeight);
-            _gameManager.StateChanged += OnStateChanged;
-            _gameManager.PhaseChanged += OnPhaseChanged;
-            _gameManager.TutorialMessageChanged += OnTutorialMessageChanged;
-            _gameManager.AlarmTriggered += OnAlarmTriggered;
-            _gameManager.AtomicReactionOccurred += OnAtomicReactionOccurred;
-
-            _gameTimer = new DispatcherTimer
+            try
             {
-                Interval = TimeSpan.FromMilliseconds(50) // 20 FPS
-            };
-            _gameTimer.Tick += GameTimer_Tick;
+                double screenWidth = SystemParameters.PrimaryScreenWidth;
+                double screenHeight = SystemParameters.PrimaryScreenHeight;
 
-            _microscopeTimer = new DispatcherTimer
+                _gameManager = new GameManager(screenWidth, screenHeight);
+                _gameManager.StateChanged += OnStateChanged;
+                _gameManager.PhaseChanged += OnPhaseChanged;
+                _gameManager.TutorialMessageChanged += OnTutorialMessageChanged;
+                _gameManager.AlarmTriggered += OnAlarmTriggered;
+                _gameManager.AtomicReactionOccurred += OnAtomicReactionOccurred;
+
+                _gameTimer = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMilliseconds(50) // 20 FPS
+                };
+                _gameTimer.Tick += GameTimer_Tick;
+
+                _microscopeTimer = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMilliseconds(100)
+                };
+                _microscopeTimer.Tick += MicroscopeTimer_Tick;
+
+                // Record game start in profile
+                _currentProfile.RecordGameStart();
+            }
+            catch (Exception ex)
             {
-                Interval = TimeSpan.FromMilliseconds(100)
-            };
-            _microscopeTimer.Tick += MicroscopeTimer_Tick;
+                MessageBox.Show($"Error initializing game: {ex.Message}\n\n{ex.StackTrace}",
+                    "Initialization Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void StartGame_Click(object sender, RoutedEventArgs e)
