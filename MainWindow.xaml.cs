@@ -41,11 +41,7 @@ namespace BiochemSimulator
         {
             try
             {
-                MessageBox.Show("MainWindow constructor started", "Debug", MessageBoxButton.OK, MessageBoxImage.Information);
-
                 InitializeComponent();
-
-                MessageBox.Show("InitializeComponent() completed", "Debug", MessageBoxButton.OK, MessageBoxImage.Information);
 
                 _random = new Random();
                 _activeChemicals = new Dictionary<Point, ChemicalSpray>();
@@ -66,8 +62,6 @@ namespace BiochemSimulator
 
                 Loaded += MainWindow_Loaded;
                 Closing += MainWindow_Closing;
-
-                MessageBox.Show("MainWindow constructor completed successfully", "Debug", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
