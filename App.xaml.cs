@@ -20,24 +20,16 @@ namespace BiochemSimulator
                 if (result == true && profileWindow.SelectedProfile != null)
                 {
                     // Profile selected, launch main game window
-                    MessageBox.Show($"About to create MainWindow for profile: {profileWindow.SelectedProfile.PlayerName}",
-                        "Debug", MessageBoxButton.OK, MessageBoxImage.Information);
-
                     var mainWindow = new MainWindow(profileWindow.SelectedProfile);
 
-                    MessageBox.Show("MainWindow created successfully. About to show window.",
-                        "Debug", MessageBoxButton.OK, MessageBoxImage.Information);
+                    // When main window closes, shut down the application
+                    mainWindow.Closed += (s, args) => Shutdown();
 
                     mainWindow.Show();
-
-                    MessageBox.Show("MainWindow.Show() called successfully.",
-                        "Debug", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
                 {
                     // No profile selected or user cancelled, exit application
-                    MessageBox.Show("No profile selected. Shutting down.",
-                        "Debug", MessageBoxButton.OK, MessageBoxImage.Information);
                     Shutdown();
                 }
             }
