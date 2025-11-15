@@ -1,0 +1,273 @@
+<Window x:Class="BiochemSimulator.ProfileSelectionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Biochem Simulator - Profile Selection"
+        Height="600" Width="900"
+        Background="#1a1a2e"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanMinimize">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="80"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="60"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="#16213e" BorderBrush="#0f3460" BorderThickness="0,0,0,2">
+            <StackPanel VerticalAlignment="Center" Margin="20,0">
+                <TextBlock Text="BIOCHEMISTRY SIMULATOR"
+                          FontSize="28"
+                          FontWeight="Bold"
+                          Foreground="#00d9ff"
+                          HorizontalAlignment="Center"/>
+                <TextBlock Text="Select or Create a Profile"
+                          FontSize="14"
+                          Foreground="#94a3b8"
+                          HorizontalAlignment="Center"
+                          Margin="0,5,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Content Area -->
+        <Grid Grid.Row="1" Margin="20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="20"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Profiles List -->
+            <Border Grid.Column="0"
+                    Background="#16213e"
+                    BorderBrush="#0f3460"
+                    BorderThickness="2"
+                    CornerRadius="5">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="40"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Background="#0f3460" CornerRadius="5,5,0,0">
+                        <TextBlock Text="Your Profiles"
+                                  FontSize="16"
+                                  FontWeight="Bold"
+                                  Foreground="White"
+                                  VerticalAlignment="Center"
+                                  Margin="15,0"/>
+                    </Border>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="10">
+                        <ItemsControl x:Name="ProfilesList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#1a1a2e"
+                                           BorderBrush="#0f3460"
+                                           BorderThickness="1"
+                                           CornerRadius="5"
+                                           Margin="0,5"
+                                           Padding="15"
+                                           Cursor="Hand"
+                                           MouseDown="ProfileItem_MouseDown"
+                                           Tag="{Binding PlayerName}">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="#0f3460"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+
+                                            <TextBlock Grid.Row="0"
+                                                      Text="{Binding PlayerName}"
+                                                      FontSize="18"
+                                                      FontWeight="Bold"
+                                                      Foreground="#00d9ff"/>
+
+                                            <TextBlock Grid.Row="1"
+                                                      Foreground="#94a3b8"
+                                                      FontSize="12"
+                                                      Margin="0,5,0,0">
+                                                <Run Text="Last Played: "/>
+                                                <Run Text="{Binding LastPlayedDate, StringFormat='MM/dd/yyyy HH:mm'}"/>
+                                            </TextBlock>
+
+                                            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
+                                                <Border Background="#16213e" Padding="8,4" CornerRadius="3" Margin="0,0,10,0">
+                                                    <TextBlock Foreground="White" FontSize="11">
+                                                        <Run Text="Games: "/>
+                                                        <Run Text="{Binding GamesPlayed}" FontWeight="Bold"/>
+                                                    </TextBlock>
+                                                </Border>
+                                                <Border Background="#16213e" Padding="8,4" CornerRadius="3" Margin="0,0,10,0">
+                                                    <TextBlock Foreground="#4ade80" FontSize="11">
+                                                        <Run Text="Wins: "/>
+                                                        <Run Text="{Binding GamesWon}" FontWeight="Bold"/>
+                                                    </TextBlock>
+                                                </Border>
+                                                <Border Background="#16213e" Padding="8,4" CornerRadius="3">
+                                                    <TextBlock Foreground="#fbbf24" FontSize="11">
+                                                        <Run Text="Points: "/>
+                                                        <Run Text="{Binding TotalAchievementPoints}" FontWeight="Bold"/>
+                                                    </TextBlock>
+                                                </Border>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <!-- Profile Details / New Profile -->
+            <Border Grid.Column="2"
+                    Background="#16213e"
+                    BorderBrush="#0f3460"
+                    BorderThickness="2"
+                    CornerRadius="5">
+                <Grid Margin="15">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0"
+                              Text="Create New Profile"
+                              FontSize="16"
+                              FontWeight="Bold"
+                              Foreground="White"
+                              Margin="0,0,0,15"/>
+
+                    <StackPanel Grid.Row="1" VerticalAlignment="Top">
+                        <TextBlock Text="Player Name:"
+                                  Foreground="#94a3b8"
+                                  FontSize="12"
+                                  Margin="0,0,0,5"/>
+
+                        <TextBox x:Name="NewProfileNameTextBox"
+                                Background="#1a1a2e"
+                                Foreground="White"
+                                BorderBrush="#0f3460"
+                                BorderThickness="1"
+                                Padding="10"
+                                FontSize="14"
+                                MaxLength="20"/>
+
+                        <Button x:Name="CreateProfileButton"
+                               Content="Create Profile"
+                               Background="#00d9ff"
+                               Foreground="#1a1a2e"
+                               BorderThickness="0"
+                               Padding="15,10"
+                               FontSize="14"
+                               FontWeight="Bold"
+                               Margin="0,15,0,0"
+                               Cursor="Hand"
+                               Click="CreateProfile_Click">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#00b8d9"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+
+                        <Separator Background="#0f3460" Margin="0,20"/>
+
+                        <TextBlock Text="Selected Profile Actions"
+                                  Foreground="#94a3b8"
+                                  FontSize="12"
+                                  Margin="0,10,0,10"/>
+
+                        <Button x:Name="DeleteProfileButton"
+                               Content="Delete Profile"
+                               Background="#ef4444"
+                               Foreground="White"
+                               BorderThickness="0"
+                               Padding="15,8"
+                               FontSize="12"
+                               Margin="0,5,0,0"
+                               Cursor="Hand"
+                               Click="DeleteProfile_Click"
+                               IsEnabled="False">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#dc2626"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Footer Buttons -->
+        <Border Grid.Row="2" Background="#16213e" BorderBrush="#0f3460" BorderThickness="0,2,0,0">
+            <Grid Margin="20,0">
+                <Button x:Name="PlayButton"
+                       Content="Play Game"
+                       Background="#4ade80"
+                       Foreground="#1a1a2e"
+                       BorderThickness="0"
+                       Padding="30,10"
+                       FontSize="16"
+                       FontWeight="Bold"
+                       HorizontalAlignment="Right"
+                       Cursor="Hand"
+                       IsEnabled="False"
+                       Click="Play_Click">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#22c55e"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+
+                <Button Content="Exit"
+                       Background="#64748b"
+                       Foreground="White"
+                       BorderThickness="0"
+                       Padding="30,10"
+                       FontSize="16"
+                       FontWeight="Bold"
+                       HorizontalAlignment="Left"
+                       Cursor="Hand"
+                       Click="Exit_Click">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#475569"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
