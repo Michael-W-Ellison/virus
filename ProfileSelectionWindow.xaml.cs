@@ -71,7 +71,7 @@ namespace BiochemSimulator
                                     }
                                     else
                                     {
-                                        itemBorder.BorderBrush = (System.Windows.Media.Brush)FindResource("BorderBrush");
+                                        itemBorder.BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x0f, 0x34, 0x60));
                                         itemBorder.BorderThickness = new Thickness(1);
                                     }
                                 }
