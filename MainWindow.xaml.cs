@@ -39,26 +39,42 @@ namespace BiochemSimulator
 
         public MainWindow(PlayerProfile profile)
         {
-            InitializeComponent();
-            _random = new Random();
-            _activeChemicals = new Dictionary<Point, ChemicalSpray>();
-            _atomVisuals = new List<AtomVisual>();
-            _createdMolecules = new List<Molecule>();
+            try
+            {
+                MessageBox.Show("MainWindow constructor started", "Debug", MessageBoxButton.OK, MessageBoxImage.Information);
 
-            // Initialize profile system
-            _currentProfile = profile;
-            _saveManager = new SaveManager();
-            _achievementManager = new AchievementManager(_currentProfile);
-            _sessionStartTime = DateTime.Now;
+                InitializeComponent();
 
-            // Subscribe to achievement events
-            _achievementManager.AchievementUnlocked += OnAchievementUnlocked;
+                MessageBox.Show("InitializeComponent() completed", "Debug", MessageBoxButton.OK, MessageBoxImage.Information);
 
-            // Update window title with player name
-            Title = $"Biochemistry Simulator - {_currentProfile.PlayerName}";
+                _random = new Random();
+                _activeChemicals = new Dictionary<Point, ChemicalSpray>();
+                _atomVisuals = new List<AtomVisual>();
+                _createdMolecules = new List<Molecule>();
 
-            Loaded += MainWindow_Loaded;
-            Closing += MainWindow_Closing;
+                // Initialize profile system
+                _currentProfile = profile;
+                _saveManager = new SaveManager();
+                _achievementManager = new AchievementManager(_currentProfile);
+                _sessionStartTime = DateTime.Now;
+
+                // Subscribe to achievement events
+                _achievementManager.AchievementUnlocked += OnAchievementUnlocked;
+
+                // Update window title with player name
+                Title = $"Biochemistry Simulator - {_currentProfile.PlayerName}";
+
+                Loaded += MainWindow_Loaded;
+                Closing += MainWindow_Closing;
+
+                MessageBox.Show("MainWindow constructor completed successfully", "Debug", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error in MainWindow constructor: {ex.Message}\n\n{ex.StackTrace}",
+                    "Constructor Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                throw;
+            }
         }
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
