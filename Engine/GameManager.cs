@@ -5,6 +5,7 @@ namespace BiochemSimulator.Engine
 {
     public class GameManager
     {
+        private AtomicEngine _atomicEngine;
         private ChemistryEngine _chemistryEngine;
         private OrganismManager _organismManager;
         private GameState _currentState;
@@ -12,34 +13,43 @@ namespace BiochemSimulator.Engine
         private DateTime _phaseStartTime;
         private DateTime _alarmScheduledTime;
         private List<Chemical> _currentBeaker;
+        private List<Atom> _currentAtomWorkspace;
+        private List<Molecule> _currentMolecules;
         private Dictionary<ExperimentPhase, bool> _phasesCompleted;
 
         public event EventHandler<GameState>? StateChanged;
         public event EventHandler<ExperimentPhase>? PhaseChanged;
         public event EventHandler<string>? TutorialMessageChanged;
         public event EventHandler? AlarmTriggered;
+        public event EventHandler<MoleculeReactionResult>? AtomicReactionOccurred;
 
         public GameState CurrentState => _currentState;
         public ExperimentPhase CurrentPhase => _currentPhase;
+        public AtomicEngine Atomic => _atomicEngine;
         public ChemistryEngine Chemistry => _chemistryEngine;
         public OrganismManager Organisms => _organismManager;
         public List<Chemical> CurrentBeaker => _currentBeaker;
+        public List<Atom> CurrentAtomWorkspace => _currentAtomWorkspace;
+        public List<Molecule> CurrentMolecules => _currentMolecules;
 
         public GameManager(double screenWidth, double screenHeight)
         {
+            _atomicEngine = new AtomicEngine();
             _chemistryEngine = new ChemistryEngine();
             _organismManager = new OrganismManager(_chemistryEngine, screenWidth, screenHeight);
             _currentState = GameState.Introduction;
-            _currentPhase = ExperimentPhase.AminoAcids;
+            _currentPhase = ExperimentPhase.SimpleMolecules;
             _currentBeaker = new List<Chemical>();
+            _currentAtomWorkspace = new List<Atom>();
+            _currentMolecules = new List<Molecule>();
             _phasesCompleted = new Dictionary<ExperimentPhase, bool>();
             _phaseStartTime = DateTime.Now;
         }
 
         public void StartGame()
         {
-            ChangeState(GameState.BiochemSimulator);
-            _currentPhase = ExperimentPhase.AminoAcids;
+            ChangeState(GameState.AtomicChemistry);
+            _currentPhase = ExperimentPhase.SimpleMolecules;
             ShowTutorialMessage(GetPhaseInstructions(_currentPhase));
         }
 
@@ -99,12 +109,88 @@ namespace BiochemSimulator.Engine
             }
         }
 
+        public void AddAtomToWorkspace(Atom atom)
+        {
+            _currentAtomWorkspace.Add(atom);
+        }
+
+        public void ClearAtomWorkspace()
+        {
+            _currentAtomWorkspace.Clear();
+        }
+
+        public Molecule? TryBuildMolecule(List<Atom> atoms, List<(int, int, BondType)> bondInstructions)
+        {
+            List<Bond> bonds = new List<Bond>();
+
+            foreach (var (idx1, idx2, bondType) in bondInstructions)
+            {
+                if (idx1 >= atoms.Count || idx2 >= atoms.Count)
+                    continue;
+
+                var bond = _atomicEngine.CreateBond(atoms[idx1], atoms[idx2], bondType);
+                if (bond != null)
+                {
+                    bonds.Add(bond);
+                }
+            }
+
+            var molecule = _atomicEngine.CreateMolecule(atoms, bonds);
+            return molecule;
+        }
+
+        public void TryMolecularReaction(Molecule mol1, Molecule mol2)
+        {
+            var result = _atomicEngine.TryReact(mol1, mol2);
+
+            if (result.Success)
+            {
+                ShowTutorialMessage($"REACTION! {result.Description}");
+                AtomicReactionOccurred?.Invoke(this, result);
+
+                // Check if this completes the current phase
+                CheckAtomicPhaseCompletion(result);
+            }
+        }
+
+        private void CheckAtomicPhaseCompletion(MoleculeReactionResult result)
+        {
+            switch (_currentPhase)
+            {
+                case ExperimentPhase.SimpleMolecules:
+                    // Looking for H2O creation
+                    if (result.Products.Any(p => p.Formula == "H2O"))
+                    {
+                        CompletePhase();
+                    }
+                    break;
+                case ExperimentPhase.ComplexMolecules:
+                    // Looking for CH4 or CO2
+                    if (result.Products.Any(p => p.Formula == "CH4" || p.Formula == "CO2"))
+                    {
+                        CompletePhase();
+                    }
+                    break;
+            }
+        }
+
         private void CompletePhase()
         {
             _phasesCompleted[_currentPhase] = true;
 
             switch (_currentPhase)
             {
+                case ExperimentPhase.SimpleMolecules:
+                    _currentPhase = ExperimentPhase.ComplexMolecules;
+                    ShowTutorialMessage("Excellent! You've created water. Now let's try more complex molecules like methane or carbon dioxide.");
+                    break;
+
+                case ExperimentPhase.ComplexMolecules:
+                    _currentPhase = ExperimentPhase.AminoAcids;
+                    ChangeState(GameState.BiochemSimulator);
+                    ShowTutorialMessage("Great! Now you understand molecular chemistry. Let's move to biochemistry and create the building blocks of life!");
+                    break;
+
                 case ExperimentPhase.AminoAcids:
                     _currentPhase = ExperimentPhase.RNA;
                     ShowTutorialMessage("Excellent! You've created proteins. Now let's make RNA.");
@@ -135,6 +221,7 @@ namespace BiochemSimulator.Engine
 
             PhaseChanged?.Invoke(this, _currentPhase);
             ClearBeaker();
+            ClearAtomWorkspace();
         }
 
         public void DisposeOrganismsInTrash()
@@ -210,8 +297,15 @@ namespace BiochemSimulator.Engine
         {
             switch (phase)
             {
+                case ExperimentPhase.SimpleMolecules:
+                    return "Welcome to the Chemistry Learning Lab! Let's start with the basics - atoms and molecules. " +
+                           "Try combining Hydrogen (H) and Oxygen (O) atoms to create water (H2O). " +
+                           "WARNING: Some combinations are highly reactive or explosive!";
+                case ExperimentPhase.ComplexMolecules:
+                    return "Great! Now let's create more complex molecules. Try making methane (CH4) from Carbon and Hydrogen, " +
+                           "or carbon dioxide (CO2) from Carbon and Oxygen. Watch out for unstable combinations!";
                 case ExperimentPhase.AminoAcids:
-                    return "Welcome to the Biochemistry Simulator! Let's start by creating proteins from amino acids. " +
+                    return "Now we move to biochemistry! Let's create proteins from amino acids. " +
                            "Combine Glycine, Alanine, and Cysteine in the beaker.";
                 case ExperimentPhase.RNA:
                     return "Now let's create RNA. Combine Adenine, Uracil, Cytosine, and Guanine.";
