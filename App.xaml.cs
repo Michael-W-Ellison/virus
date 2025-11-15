@@ -1,16 +1,36 @@
+using System;
 using System.Windows;
 
 namespace BiochemSimulator
 {
     public partial class App : Application
     {
-        protected override void OnStartup(StartupEventArgs e)
+        private void Application_Startup(object sender, StartupEventArgs e)
         {
-            base.OnStartup(e);
-
             // Set global exception handlers
             AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
             DispatcherUnhandledException += OnDispatcherUnhandledException;
+
+            // Show profile selection window first
+            var profileWindow = new ProfileSelectionWindow();
+            var result = profileWindow.ShowDialog();
+
+            if (result == true && profileWindow.SelectedProfile != null)
+            {
+                // Profile selected, launch main game window
+                var mainWindow = new MainWindow(profileWindow.SelectedProfile);
+                mainWindow.Show();
+            }
+            else
+            {
+                // No profile selected or user cancelled, exit application
+                Shutdown();
+            }
+        }
+
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            base.OnStartup(e);
         }
 
         private void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)

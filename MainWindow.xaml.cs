@@ -27,7 +27,13 @@ namespace BiochemSimulator
         private bool _isDragging;
         private List<Molecule> _createdMolecules;
 
-        public MainWindow()
+        // Profile and Achievement System
+        private PlayerProfile _currentProfile;
+        private SaveManager _saveManager;
+        private AchievementManager _achievementManager;
+        private DateTime _sessionStartTime;
+
+        public MainWindow(PlayerProfile profile)
         {
             InitializeComponent();
             _random = new Random();
@@ -35,7 +41,20 @@ namespace BiochemSimulator
             _atomVisuals = new List<AtomVisual>();
             _createdMolecules = new List<Molecule>();
 
+            // Initialize profile system
+            _currentProfile = profile;
+            _saveManager = new SaveManager();
+            _achievementManager = new AchievementManager(_currentProfile);
+            _sessionStartTime = DateTime.Now;
+
+            // Subscribe to achievement events
+            _achievementManager.AchievementUnlocked += OnAchievementUnlocked;
+
+            // Update window title with player name
+            Title = $"Biochemistry Simulator - {_currentProfile.PlayerName}";
+
             Loaded += MainWindow_Loaded;
+            Closing += MainWindow_Closing;
         }
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -661,6 +680,18 @@ namespace BiochemSimulator
                 // Add to game manager
                 _gameManager.AddAtomToWorkspace(atom);
 
+                // Track stats and achievements
+                _currentProfile.TotalAtomsPlaced++;
+                _currentProfile.DiscoverAtom(atom.Symbol);
+                _achievementManager.CheckAchievements(GameEvent.AtomUsed, atom.Symbol);
+
+                // Check for radioactive achievement
+                if (atom.IsRadioactive)
+                {
+                    _currentProfile.RadioactiveElementsUsed++;
+                    _achievementManager.CheckAchievements(GameEvent.RadioactiveUsed, atom.Symbol);
+                }
+
                 // Create visual
                 CreateAtomVisual(atom);
 
@@ -878,6 +909,11 @@ namespace BiochemSimulator
             {
                 _createdMolecules.Add(molecule);
 
+                // Track stats and achievements
+                _currentProfile.TotalMoleculesCreated++;
+                _currentProfile.DiscoverMolecule(molecule.Formula);
+                _achievementManager.CheckAchievements(GameEvent.MoleculeCreated, molecule.Formula);
+
                 // Display molecule info
                 MoleculeDisplayPanel.Visibility = Visibility.Visible;
                 MoleculeFormulaText.Text = molecule.Formula;
@@ -1009,14 +1045,21 @@ namespace BiochemSimulator
                         break;
                 }
 
+                // Track achievements
+                if (result.IsExplosive)
+                {
+                    _currentProfile.ExplosionsCaused++;
+                    _achievementManager.CheckAchievements(GameEvent.ExplosionCaused);
+                    ShowExtremeHazardWarning("EXPLOSIVE REACTION OCCURRED!");
+                }
+
+                // Track reaction discovery
+                _currentProfile.DiscoverReaction(result.Description);
+                _achievementManager.CheckAchievements(GameEvent.ReactionDiscovered);
+
                 // Display reaction message
                 MessageBox.Show(result.Description, "Chemical Reaction!",
                     MessageBoxButton.OK, MessageBoxImage.Exclamation);
-
-                if (result.IsExplosive)
-                {
-                    ShowExtremeHazardWarning("EXPLOSIVE REACTION OCCURRED!");
-                }
             });
         }
 
@@ -1222,6 +1265,52 @@ namespace BiochemSimulator
                     TutorialText.Text = message;
                 }
             });
+        }
+
+        private void OnAchievementUnlocked(object? sender, AchievementUnlockedEventArgs e)
+        {
+            // Show achievement notification
+            Dispatcher.Invoke(() =>
+            {
+                ShowAchievementNotification(e.Achievement);
+            });
+        }
+
+        private void ShowAchievementNotification(Achievement achievement)
+        {
+            // Create a notification window/popup for achievement
+            string message = $"{achievement.Icon} Achievement Unlocked!\n\n" +
+                           $"{achievement.Name}\n" +
+                           $"{achievement.Description}\n\n" +
+                           $"+{achievement.Points} Points";
+
+            MessageBox.Show(message, "Achievement Unlocked!",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+        {
+            // Save profile on exit
+            SaveProfileOnExit();
+        }
+
+        private void SaveProfileOnExit()
+        {
+            try
+            {
+                // Calculate session time
+                var sessionTime = (int)(DateTime.Now - _sessionStartTime).TotalMinutes;
+                _currentProfile.AddPlayTime(sessionTime);
+                _currentProfile.UpdateLastPlayed();
+
+                // Save profile
+                _saveManager.SaveProfile(_currentProfile);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error saving profile: {ex.Message}", "Save Error",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
     }
 
