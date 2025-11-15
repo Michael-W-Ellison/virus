@@ -19,11 +19,21 @@ namespace BiochemSimulator
         private Dictionary<Point, ChemicalSpray> _activeChemicals;
         private Random _random;
 
+        // Atomic chemistry fields
+        private Atom? _selectedAtom;
+        private List<AtomVisual> _atomVisuals;
+        private Atom? _draggingAtom;
+        private Point _dragStartPoint;
+        private bool _isDragging;
+        private List<Molecule> _createdMolecules;
+
         public MainWindow()
         {
             InitializeComponent();
             _random = new Random();
             _activeChemicals = new Dictionary<Point, ChemicalSpray>();
+            _atomVisuals = new List<AtomVisual>();
+            _createdMolecules = new List<Molecule>();
 
             Loaded += MainWindow_Loaded;
         }
@@ -38,6 +48,7 @@ namespace BiochemSimulator
             _gameManager.PhaseChanged += OnPhaseChanged;
             _gameManager.TutorialMessageChanged += OnTutorialMessageChanged;
             _gameManager.AlarmTriggered += OnAlarmTriggered;
+            _gameManager.AtomicReactionOccurred += OnAtomicReactionOccurred;
 
             _gameTimer = new DispatcherTimer
             {
@@ -66,12 +77,21 @@ namespace BiochemSimulator
             {
                 StatusText.Text = $"State: {state}";
 
+                // Hide all views first
+                AtomicWorkspaceView.Visibility = Visibility.Collapsed;
+                SimulatorView.Visibility = Visibility.Collapsed;
+                DesktopOverlay.Visibility = Visibility.Collapsed;
+                DesktopUI.Visibility = Visibility.Collapsed;
+
                 switch (state)
                 {
+                    case GameState.AtomicChemistry:
+                        AtomicWorkspaceView.Visibility = Visibility.Visible;
+                        InitializeAtomicWorkspace();
+                        break;
+
                     case GameState.BiochemSimulator:
                         SimulatorView.Visibility = Visibility.Visible;
-                        DesktopOverlay.Visibility = Visibility.Collapsed;
-                        DesktopUI.Visibility = Visibility.Collapsed;
                         UpdateChemicalInventory();
                         break;
 
@@ -82,7 +102,6 @@ namespace BiochemSimulator
                         break;
 
                     case GameState.VirusOutbreak:
-                        SimulatorView.Visibility = Visibility.Collapsed;
                         DesktopOverlay.Visibility = Visibility.Visible;
                         DesktopUI.Visibility = Visibility.Visible;
                         OrganismStats.Visibility = Visibility.Visible;
@@ -559,6 +578,521 @@ namespace BiochemSimulator
 
             _gameTimer.Stop();
         }
+
+        // ==================== ATOMIC CHEMISTRY METHODS ====================
+
+        private void InitializeAtomicWorkspace()
+        {
+            // Populate atom inventory
+            AtomInventoryPanel.Children.Clear();
+
+            var atoms = _gameManager.Atomic.GetAllAtoms();
+            foreach (var atom in atoms)
+            {
+                var button = new Button
+                {
+                    Style = (Style)FindResource("ChemicalButton"),
+                    Tag = atom.Symbol,
+                    Margin = new Thickness(5)
+                };
+
+                var sp = new StackPanel();
+                sp.Children.Add(new TextBlock
+                {
+                    Text = atom.Symbol,
+                    FontWeight = FontWeights.Bold,
+                    FontSize = 18,
+                    Foreground = new SolidColorBrush(atom.Color),
+                    HorizontalAlignment = HorizontalAlignment.Center
+                });
+                sp.Children.Add(new TextBlock
+                {
+                    Text = atom.Name,
+                    FontSize = 10,
+                    Foreground = Brushes.White,
+                    Opacity = 0.8,
+                    HorizontalAlignment = HorizontalAlignment.Center
+                });
+                sp.Children.Add(new TextBlock
+                {
+                    Text = $"Bonds: {atom.MaxBonds}",
+                    FontSize = 9,
+                    Foreground = Brushes.LightGray,
+                    Opacity = 0.6,
+                    HorizontalAlignment = HorizontalAlignment.Center
+                });
+
+                button.Content = sp;
+                button.Click += AtomButton_Click;
+
+                AtomInventoryPanel.Children.Add(button);
+            }
+        }
+
+        private void AtomButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.Tag is string symbol)
+            {
+                _selectedAtom = _gameManager.Atomic.GetAtom(symbol);
+
+                if (_selectedAtom != null)
+                {
+                    SelectedAtomText.Text = $"{_selectedAtom.Symbol} - {_selectedAtom.Name}";
+                    AtomPropertiesText.Text = $"Atomic #: {_selectedAtom.AtomicNumber}\n" +
+                                             $"Valence e⁻: {_selectedAtom.ValenceElectrons}\n" +
+                                             $"Max Bonds: {_selectedAtom.MaxBonds}\n" +
+                                             $"Reactivity: {_selectedAtom.Reactivity}/10";
+
+                    AtomicStatusText.Text = $"Selected {_selectedAtom.Name}. Click on workspace to place.";
+                }
+            }
+        }
+
+        private void AtomicCanvas_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (_selectedAtom != null && e.LeftButton == MouseButtonState.Pressed)
+            {
+                Point position = e.GetPosition(AtomicCanvas);
+
+                // Create a new atom instance
+                var atom = _selectedAtom.Clone();
+                atom.Position = position;
+
+                // Add to game manager
+                _gameManager.AddAtomToWorkspace(atom);
+
+                // Create visual
+                CreateAtomVisual(atom);
+
+                // Update display
+                WorkspaceAtomsList.ItemsSource = null;
+                WorkspaceAtomsList.ItemsSource = _gameManager.CurrentAtomWorkspace;
+
+                WorkspaceInstructions.Visibility = Visibility.Collapsed;
+
+                // Check hazards
+                CheckHazards();
+
+                AtomicStatusText.Text = $"Placed {atom.Name}. Select more atoms or build molecule.";
+            }
+        }
+
+        private void CreateAtomVisual(Atom atom)
+        {
+            var ellipse = new Ellipse
+            {
+                Width = 40,
+                Height = 40,
+                Fill = new RadialGradientBrush(
+                    atom.Color,
+                    Color.FromArgb(150, atom.Color.R, atom.Color.G, atom.Color.B)
+                ),
+                Stroke = Brushes.White,
+                StrokeThickness = 2,
+                Tag = atom
+            };
+
+            var text = new TextBlock
+            {
+                Text = atom.Symbol,
+                Foreground = Brushes.White,
+                FontWeight = FontWeights.Bold,
+                FontSize = 16,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            Canvas.SetLeft(ellipse, atom.Position.X - 20);
+            Canvas.SetTop(ellipse, atom.Position.Y - 20);
+            Canvas.SetLeft(text, atom.Position.X - 10);
+            Canvas.SetTop(text, atom.Position.Y - 10);
+
+            AtomicCanvas.Children.Add(ellipse);
+            AtomicCanvas.Children.Add(text);
+
+            _atomVisuals.Add(new AtomVisual { Atom = atom, Ellipse = ellipse, Text = text });
+        }
+
+        private void AtomicCanvas_MouseMove(object sender, MouseEventArgs e)
+        {
+            // For future: dragging atoms
+        }
+
+        private void AtomicCanvas_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            // For future: complete dragging
+        }
+
+        private void BuildMolecule_Click(object sender, RoutedEventArgs e)
+        {
+            if (_gameManager.CurrentAtomWorkspace.Count < 2)
+            {
+                MessageBox.Show("Need at least 2 atoms to build a molecule!", "Info",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            // Auto-bond nearby atoms
+            var bonds = AutoBondAtoms(_gameManager.CurrentAtomWorkspace);
+            var molecule = _gameManager.TryBuildMolecule(_gameManager.CurrentAtomWorkspace, bonds);
+
+            if (molecule != null)
+            {
+                _createdMolecules.Add(molecule);
+
+                // Display molecule info
+                MoleculeDisplayPanel.Visibility = Visibility.Visible;
+                MoleculeFormulaText.Text = molecule.Formula;
+                MoleculeNameText.Text = molecule.Name;
+
+                var stabilityColor = molecule.Stability switch
+                {
+                    MoleculeStability.Stable => Brushes.LightGreen,
+                    MoleculeStability.Metastable => Brushes.Yellow,
+                    MoleculeStability.Unstable => Brushes.Orange,
+                    MoleculeStability.Explosive => Brushes.Red,
+                    _ => Brushes.White
+                };
+
+                MoleculeStabilityText.Text = $"Stability: {molecule.Stability}";
+                MoleculeStabilityText.Foreground = stabilityColor;
+
+                // Draw bonds
+                DrawMoleculeBonds(molecule);
+
+                // Enable combine button
+                if (_createdMolecules.Count >= 2)
+                {
+                    CombineMoleculesButton.IsEnabled = true;
+                }
+
+                AtomicStatusText.Text = $"Created {molecule.Name} ({molecule.Formula})! " +
+                    $"Stability: {molecule.Stability}";
+
+                // Check for hazards
+                CheckHazards();
+            }
+            else
+            {
+                MessageBox.Show("Could not form stable molecule from these atoms.", "Failed",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private List<(int, int, BondType)> AutoBondAtoms(List<Atom> atoms)
+        {
+            var bonds = new List<(int, int, BondType)>();
+
+            for (int i = 0; i < atoms.Count; i++)
+            {
+                for (int j = i + 1; j < atoms.Count; j++)
+                {
+                    double distance = Math.Sqrt(
+                        Math.Pow(atoms[i].Position.X - atoms[j].Position.X, 2) +
+                        Math.Pow(atoms[i].Position.Y - atoms[j].Position.Y, 2)
+                    );
+
+                    // Bond if close enough (within 100 pixels)
+                    if (distance < 100)
+                    {
+                        BondType bondType = DetermineBondType(atoms[i], atoms[j]);
+                        bonds.Add((i, j, bondType));
+                    }
+                }
+            }
+
+            return bonds;
+        }
+
+        private BondType DetermineBondType(Atom atom1, Atom atom2)
+        {
+            double electronegativityDiff = Math.Abs(atom1.Electronegativity - atom2.Electronegativity);
+
+            if (electronegativityDiff > 1.7)
+                return BondType.Ionic;
+
+            // Default to single covalent bond
+            return BondType.Single;
+        }
+
+        private void DrawMoleculeBonds(Molecule molecule)
+        {
+            foreach (var bond in molecule.Bonds)
+            {
+                var line = new Line
+                {
+                    X1 = bond.Atom1.Position.X,
+                    Y1 = bond.Atom1.Position.Y,
+                    X2 = bond.Atom2.Position.X,
+                    Y2 = bond.Atom2.Position.Y,
+                    Stroke = Brushes.White,
+                    StrokeThickness = bond.Type == BondType.Double ? 4 : bond.Type == BondType.Triple ? 6 : 2,
+                    Opacity = 0.6
+                };
+
+                AtomicCanvas.Children.Insert(0, line); // Add to back
+            }
+        }
+
+        private void CombineMolecules_Click(object sender, RoutedEventArgs e)
+        {
+            if (_createdMolecules.Count < 2)
+            {
+                MessageBox.Show("Need at least 2 molecules to combine!", "Info",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            // Combine the last two molecules
+            var mol1 = _createdMolecules[_createdMolecules.Count - 2];
+            var mol2 = _createdMolecules[_createdMolecules.Count - 1];
+
+            _gameManager.TryMolecularReaction(mol1, mol2);
+        }
+
+        private void OnAtomicReactionOccurred(object? sender, MoleculeReactionResult result)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                // Show reaction effect
+                switch (result.VisualEffect)
+                {
+                    case ReactionVisualEffect.Explosion:
+                        ShowExplosionEffect();
+                        break;
+                    case ReactionVisualEffect.Fire:
+                        ShowFireEffect();
+                        break;
+                    case ReactionVisualEffect.Flash:
+                        ShowFlashEffect();
+                        break;
+                    case ReactionVisualEffect.Bubbling:
+                        ShowBubblingEffect();
+                        break;
+                }
+
+                // Display reaction message
+                MessageBox.Show(result.Description, "Chemical Reaction!",
+                    MessageBoxButton.OK, MessageBoxImage.Exclamation);
+
+                if (result.IsExplosive)
+                {
+                    ShowExtremeHazardWarning("EXPLOSIVE REACTION OCCURRED!");
+                }
+            });
+        }
+
+        private void ShowExplosionEffect()
+        {
+            ExplosionEffectCanvas.Visibility = Visibility.Visible;
+            ExplosionEffectCanvas.Children.Clear();
+
+            // Create expanding circles
+            for (int i = 0; i < 5; i++)
+            {
+                var ellipse = new Ellipse
+                {
+                    Width = 50,
+                    Height = 50,
+                    Fill = new SolidColorBrush(Color.FromArgb(200, 255, (byte)(100 + i * 30), 0)),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+
+                ExplosionEffectCanvas.Children.Add(ellipse);
+                Canvas.SetLeft(ellipse, ActualWidth / 2 - 25);
+                Canvas.SetTop(ellipse, ActualHeight / 2 - 25);
+
+                // Animate expansion
+                var scaleAnim = new DoubleAnimation(1, 10 + i * 2, TimeSpan.FromSeconds(0.5 + i * 0.1));
+                var opacityAnim = new DoubleAnimation(1, 0, TimeSpan.FromSeconds(0.5 + i * 0.1));
+
+                var scaleTransform = new ScaleTransform(1, 1, 25, 25);
+                ellipse.RenderTransform = scaleTransform;
+
+                scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnim);
+                scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnim);
+                ellipse.BeginAnimation(OpacityProperty, opacityAnim);
+            }
+
+            // Hide after animation
+            Task.Delay(1500).ContinueWith(_ =>
+            {
+                Dispatcher.Invoke(() => ExplosionEffectCanvas.Visibility = Visibility.Collapsed);
+            });
+        }
+
+        private void ShowFireEffect()
+        {
+            FireEffectCanvas.Visibility = Visibility.Visible;
+            FireEffectCanvas.Children.Clear();
+
+            // Create fire particles
+            for (int i = 0; i < 20; i++)
+            {
+                var particle = new Ellipse
+                {
+                    Width = 10 + _random.Next(10),
+                    Height = 10 + _random.Next(10),
+                    Fill = new SolidColorBrush(Color.FromArgb(200, 255, (byte)(100 + _random.Next(155)), 0))
+                };
+
+                FireEffectCanvas.Children.Add(particle);
+                Canvas.SetLeft(particle, ActualWidth / 2 + _random.Next(-50, 50));
+                Canvas.SetTop(particle, ActualHeight / 2);
+
+                // Animate upward
+                var moveAnim = new DoubleAnimation(ActualHeight / 2, ActualHeight / 2 - 200, TimeSpan.FromSeconds(1 + _random.NextDouble()));
+                var opacityAnim = new DoubleAnimation(1, 0, TimeSpan.FromSeconds(1 + _random.NextDouble()));
+
+                Canvas.SetTop(particle, ActualHeight / 2);
+                particle.BeginAnimation(Canvas.TopProperty, moveAnim);
+                particle.BeginAnimation(OpacityProperty, opacityAnim);
+            }
+
+            Task.Delay(2000).ContinueWith(_ =>
+            {
+                Dispatcher.Invoke(() => FireEffectCanvas.Visibility = Visibility.Collapsed);
+            });
+        }
+
+        private void ShowFlashEffect()
+        {
+            FlashEffect.Visibility = Visibility.Visible;
+
+            var flashAnim = new DoubleAnimation
+            {
+                From = 0,
+                To = 0.8,
+                Duration = TimeSpan.FromMilliseconds(100),
+                AutoReverse = true
+            };
+
+            flashAnim.Completed += (s, e) => FlashEffect.Visibility = Visibility.Collapsed;
+            FlashEffect.BeginAnimation(OpacityProperty, flashAnim);
+        }
+
+        private void ShowBubblingEffect()
+        {
+            BubblingEffectCanvas.Visibility = Visibility.Visible;
+            BubblingEffectCanvas.Children.Clear();
+
+            for (int i = 0; i < 15; i++)
+            {
+                var bubble = new Ellipse
+                {
+                    Width = 15 + _random.Next(15),
+                    Height = 15 + _random.Next(15),
+                    Fill = Brushes.Transparent,
+                    Stroke = Brushes.LightBlue,
+                    StrokeThickness = 2,
+                    Opacity = 0.7
+                };
+
+                BubblingEffectCanvas.Children.Add(bubble);
+                Canvas.SetLeft(bubble, ActualWidth / 2 + _random.Next(-100, 100));
+                Canvas.SetTop(bubble, ActualHeight / 2);
+
+                var moveAnim = new DoubleAnimation(ActualHeight / 2, ActualHeight / 2 - 150, TimeSpan.FromSeconds(2 + _random.NextDouble()));
+                var opacityAnim = new DoubleAnimation(0.7, 0, TimeSpan.FromSeconds(2 + _random.NextDouble()));
+
+                bubble.BeginAnimation(Canvas.TopProperty, moveAnim);
+                bubble.BeginAnimation(OpacityProperty, opacityAnim);
+            }
+
+            Task.Delay(3000).ContinueWith(_ =>
+            {
+                Dispatcher.Invoke(() => BubblingEffectCanvas.Visibility = Visibility.Collapsed);
+            });
+        }
+
+        private void ShowExtremeHazardWarning(string message)
+        {
+            ExtremeHazardMessage.Text = message;
+            ExtremeHazardOverlay.Visibility = Visibility.Visible;
+
+            var blinkAnim = new DoubleAnimation
+            {
+                From = 0,
+                To = 0.9,
+                Duration = TimeSpan.FromMilliseconds(300),
+                AutoReverse = true,
+                RepeatBehavior = new RepeatBehavior(3)
+            };
+
+            blinkAnim.Completed += (s, e) => ExtremeHazardOverlay.Visibility = Visibility.Collapsed;
+            ExtremeHazardOverlay.BeginAnimation(OpacityProperty, blinkAnim);
+        }
+
+        private void CheckHazards()
+        {
+            var hazard = _gameManager.Atomic.AnalyzeHazard(_createdMolecules);
+
+            if (hazard.Level == HazardLevel.Safe)
+            {
+                HazardWarningPanel.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            HazardWarningPanel.Visibility = Visibility.Visible;
+            HazardLevelText.Text = $"Level: {hazard.Level.ToString().ToUpper()}";
+
+            // Change color based on level
+            HazardWarningPanel.Background = hazard.Level switch
+            {
+                HazardLevel.Low => new SolidColorBrush(Color.FromRgb(241, 196, 15)),
+                HazardLevel.Moderate => new SolidColorBrush(Color.FromRgb(230, 126, 34)),
+                HazardLevel.High => new SolidColorBrush(Color.FromRgb(231, 76, 60)),
+                HazardLevel.Extreme => new SolidColorBrush(Color.FromRgb(192, 57, 43)),
+                _ => new SolidColorBrush(Color.FromRgb(231, 76, 60))
+            };
+
+            HazardWarningsList.ItemsSource = hazard.Warnings;
+
+            if (hazard.Level == HazardLevel.Extreme)
+            {
+                ShowExtremeHazardWarning(string.Join("\n", hazard.Warnings));
+            }
+        }
+
+        private void ClearAtomicWorkspace_Click(object sender, RoutedEventArgs e)
+        {
+            _gameManager.ClearAtomWorkspace();
+            AtomicCanvas.Children.Clear();
+            _atomVisuals.Clear();
+            _createdMolecules.Clear();
+
+            WorkspaceAtomsList.ItemsSource = null;
+            MoleculeDisplayPanel.Visibility = Visibility.Collapsed;
+            HazardWarningPanel.Visibility = Visibility.Collapsed;
+            WorkspaceInstructions.Visibility = Visibility.Visible;
+            CombineMoleculesButton.IsEnabled = false;
+
+            AtomicStatusText.Text = "Workspace cleared. Select atoms to begin.";
+        }
+
+        private void OnTutorialMessageChanged(object? sender, string message)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                if (_gameManager.CurrentState == GameState.AtomicChemistry)
+                {
+                    AtomicTutorialText.Text = message;
+                }
+                else
+                {
+                    TutorialText.Text = message;
+                }
+            });
+        }
+    }
+
+    // Helper class for atom visuals
+    public class AtomVisual
+    {
+        public Atom Atom { get; set; } = null!;
+        public Ellipse Ellipse { get; set; } = null!;
+        public TextBlock Text { get; set; } = null!;
     }
 
     public class ChemicalSpray

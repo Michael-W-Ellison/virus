@@ -35,8 +35,266 @@
     </Window.Resources>
 
     <Grid>
+        <!-- Atomic Chemistry Workspace -->
+        <Grid x:Name="AtomicWorkspaceView" Visibility="Collapsed">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Tutorial Message -->
+            <Border Grid.Row="0" Background="#2C3E50" Padding="15" Margin="10">
+                <TextBlock x:Name="AtomicTutorialText"
+                          Text="Welcome to Atomic Chemistry!"
+                          Foreground="White"
+                          FontSize="16"
+                          TextWrapping="Wrap"
+                          FontWeight="SemiBold"/>
+            </Border>
+
+            <!-- Atomic Workspace -->
+            <Grid Grid.Row="1" Margin="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="250"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="300"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Atom Selection Panel (Periodic Table) -->
+                <Border Grid.Column="0" Background="#2C3E50" CornerRadius="10" Padding="10">
+                    <StackPanel>
+                        <TextBlock Text="⚛️ Periodic Table"
+                                  Foreground="White"
+                                  FontSize="18"
+                                  FontWeight="Bold"
+                                  Margin="0,0,0,10"/>
+                        <TextBlock Text="Click atom to add"
+                                  Foreground="#BDC3C7"
+                                  FontSize="11"
+                                  Margin="0,0,0,10"/>
+
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="650">
+                            <StackPanel x:Name="AtomInventoryPanel">
+                                <!-- Atoms will be added programmatically -->
+                            </StackPanel>
+                        </ScrollViewer>
+                    </StackPanel>
+                </Border>
+
+                <!-- Atomic Workspace Canvas -->
+                <Grid Grid.Column="1" Margin="10,0">
+                    <Border Background="#34495E" CornerRadius="10" Padding="10">
+                        <Grid>
+                            <!-- Main workspace canvas -->
+                            <Canvas x:Name="AtomicCanvas"
+                                   Background="#2C3E50"
+                                   MouseDown="AtomicCanvas_MouseDown"
+                                   MouseMove="AtomicCanvas_MouseMove"
+                                   MouseUp="AtomicCanvas_MouseUp"
+                                   ClipToBounds="True">
+                                <!-- Grid background -->
+                                <Canvas.OpacityMask>
+                                    <VisualBrush TileMode="Tile" Viewport="0,0,20,20" ViewportUnits="Absolute">
+                                        <VisualBrush.Visual>
+                                            <Rectangle Width="20" Height="20" Stroke="#34495E" StrokeThickness="0.5"/>
+                                        </VisualBrush.Visual>
+                                    </VisualBrush>
+                                </Canvas.OpacityMask>
+                            </Canvas>
+
+                            <!-- Workspace instructions overlay -->
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                                       x:Name="WorkspaceInstructions"
+                                       Visibility="Visible">
+                                <TextBlock Text="Molecular Workshop"
+                                          Foreground="White"
+                                          FontSize="24"
+                                          FontWeight="Bold"
+                                          HorizontalAlignment="Center"
+                                          Opacity="0.5"/>
+                                <TextBlock Text="Click atoms from the periodic table"
+                                          Foreground="White"
+                                          FontSize="14"
+                                          HorizontalAlignment="Center"
+                                          Margin="0,5,0,0"
+                                          Opacity="0.5"/>
+                                <TextBlock Text="Then click here to place them"
+                                          Foreground="White"
+                                          FontSize="14"
+                                          HorizontalAlignment="Center"
+                                          Opacity="0.5"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- Info & Control Panel -->
+                <Border Grid.Column="2" Background="#2C3E50" CornerRadius="10" Padding="10">
+                    <StackPanel>
+                        <TextBlock Text="Workspace Info"
+                                  Foreground="White"
+                                  FontSize="18"
+                                  FontWeight="Bold"
+                                  Margin="0,0,0,10"/>
+
+                        <!-- Selected Atom Display -->
+                        <Border Background="#34495E"
+                               CornerRadius="5"
+                               Padding="10"
+                               Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock Text="Selected Atom:"
+                                          Foreground="#BDC3C7"
+                                          FontSize="12"
+                                          Margin="0,0,0,5"/>
+                                <TextBlock x:Name="SelectedAtomText"
+                                          Text="None"
+                                          Foreground="White"
+                                          FontSize="16"
+                                          FontWeight="Bold"/>
+                                <TextBlock x:Name="AtomPropertiesText"
+                                          Text=""
+                                          Foreground="#BDC3C7"
+                                          FontSize="11"
+                                          Margin="0,5,0,0"
+                                          TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Atoms in Workspace -->
+                        <TextBlock Text="Atoms in Workspace:"
+                                  Foreground="#BDC3C7"
+                                  FontSize="12"
+                                  Margin="0,5,0,2"/>
+                        <ScrollViewer MaxHeight="150" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl x:Name="WorkspaceAtomsList" Margin="0,0,0,10">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="#34495E"
+                                               CornerRadius="3"
+                                               Padding="8,4"
+                                               Margin="0,2">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding Symbol}"
+                                                          Foreground="White"
+                                                          FontWeight="Bold"
+                                                          FontSize="14"
+                                                          Margin="0,0,5,0"/>
+                                                <TextBlock Text="{Binding Name}"
+                                                          Foreground="#95A5A6"
+                                                          FontSize="11"
+                                                          VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+
+                        <!-- Hazard Warning -->
+                        <Border x:Name="HazardWarningPanel"
+                               Background="#E74C3C"
+                               CornerRadius="5"
+                               Padding="10"
+                               Margin="0,10,0,10"
+                               Visibility="Collapsed">
+                            <StackPanel>
+                                <TextBlock Text="⚠️ HAZARD WARNING"
+                                          Foreground="White"
+                                          FontSize="14"
+                                          FontWeight="Bold"
+                                          Margin="0,0,0,5"/>
+                                <TextBlock x:Name="HazardLevelText"
+                                          Text="Level: SAFE"
+                                          Foreground="White"
+                                          FontSize="12"
+                                          Margin="0,0,0,5"/>
+                                <ScrollViewer MaxHeight="100" VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl x:Name="HazardWarningsList">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}"
+                                                          Foreground="White"
+                                                          FontSize="10"
+                                                          Margin="0,2,0,0"
+                                                          TextWrapping="Wrap"/>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Action Buttons -->
+                        <Button Content="🔬 Build Molecule"
+                               Style="{StaticResource ModernButton}"
+                               Background="#3498DB"
+                               Click="BuildMolecule_Click"
+                               Margin="0,5,0,0"/>
+
+                        <Button Content="💥 Combine Molecules"
+                               Style="{StaticResource ModernButton}"
+                               Background="#9B59B6"
+                               Click="CombineMolecules_Click"
+                               Margin="0,5,0,0"
+                               x:Name="CombineMoleculesButton"
+                               IsEnabled="False"/>
+
+                        <Button Content="🗑️ Clear Workspace"
+                               Style="{StaticResource ModernButton}"
+                               Background="#E74C3C"
+                               Click="ClearAtomicWorkspace_Click"
+                               Margin="0,5,0,0"/>
+
+                        <!-- Molecule Display -->
+                        <Border Background="#34495E"
+                               CornerRadius="5"
+                               Padding="10"
+                               Margin="0,15,0,0"
+                               x:Name="MoleculeDisplayPanel"
+                               Visibility="Collapsed">
+                            <StackPanel>
+                                <TextBlock Text="Created Molecule:"
+                                          Foreground="White"
+                                          FontSize="14"
+                                          FontWeight="Bold"
+                                          Margin="0,0,0,5"/>
+                                <TextBlock x:Name="MoleculeFormulaText"
+                                          Text="H₂O"
+                                          Foreground="#3498DB"
+                                          FontSize="20"
+                                          FontWeight="Bold"
+                                          Margin="0,0,0,5"/>
+                                <TextBlock x:Name="MoleculeNameText"
+                                          Text="Water"
+                                          Foreground="White"
+                                          FontSize="14"
+                                          Margin="0,0,0,5"/>
+                                <TextBlock x:Name="MoleculeStabilityText"
+                                          Text="Stability: Stable"
+                                          Foreground="#27AE60"
+                                          FontSize="12"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- Bottom Controls -->
+            <Border Grid.Row="2" Background="#2C3E50" Padding="15" Margin="10">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <TextBlock x:Name="AtomicStatusText"
+                              Text="Select atoms and build molecules"
+                              Foreground="White"
+                              FontSize="14"
+                              VerticalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
         <!-- Main Content Grid -->
-        <Grid x:Name="SimulatorView" Visibility="Visible">
+        <Grid x:Name="SimulatorView" Visibility="Collapsed">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
@@ -380,6 +638,60 @@
                           FontSize="24"
                           HorizontalAlignment="Center"
                           Margin="0,20,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Reaction Effect Overlays -->
+        <!-- Explosion Effect -->
+        <Canvas x:Name="ExplosionEffectCanvas"
+               Visibility="Collapsed"
+               IsHitTestVisible="False">
+            <!-- Will be populated programmatically with explosion animations -->
+        </Canvas>
+
+        <!-- Fire Effect -->
+        <Canvas x:Name="FireEffectCanvas"
+               Visibility="Collapsed"
+               IsHitTestVisible="False">
+            <!-- Will be populated programmatically with fire animations -->
+        </Canvas>
+
+        <!-- Flash Effect -->
+        <Border x:Name="FlashEffect"
+               Visibility="Collapsed"
+               Background="Yellow"
+               Opacity="0"
+               IsHitTestVisible="False"/>
+
+        <!-- Bubbling Effect Canvas -->
+        <Canvas x:Name="BubblingEffectCanvas"
+               Visibility="Collapsed"
+               IsHitTestVisible="False">
+            <!-- Will be populated programmatically with bubble animations -->
+        </Canvas>
+
+        <!-- Extreme Hazard Warning Overlay -->
+        <Border x:Name="ExtremeHazardOverlay"
+               Visibility="Collapsed"
+               Background="#C0392B"
+               Opacity="0"
+               IsHitTestVisible="False">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <TextBlock Text="💀 EXTREME DANGER 💀"
+                          Foreground="White"
+                          FontSize="64"
+                          FontWeight="Bold"
+                          HorizontalAlignment="Center"/>
+                <TextBlock x:Name="ExtremeHazardMessage"
+                          Text="EXPLOSIVE COMBINATION!"
+                          Foreground="White"
+                          FontSize="32"
+                          FontWeight="Bold"
+                          HorizontalAlignment="Center"
+                          Margin="0,20,0,0"
+                          TextAlignment="Center"
+                          TextWrapping="Wrap"
+                          MaxWidth="800"/>
             </StackPanel>
         </Border>
     </Grid>
