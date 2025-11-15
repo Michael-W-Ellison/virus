@@ -29,7 +29,24 @@ namespace BiochemSimulator.Engine
                 ElectronShells = new List<int> { 1 },
                 Color = Colors.White,
                 Electronegativity = 2.20,
-                Reactivity = 7.0
+                Reactivity = 7.0,
+                // Radiological
+                IsRadioactive = false,
+                HalfLife = 0,
+                DecayType = RadioactiveDecayType.None,
+                RadiationLevel = 0,
+                // Electrical
+                ElectricalConductivity = 0.00001, // Very poor conductor as gas
+                IonizationEnergy = 13.6,
+                IonCharge = 0,
+                IsConductor = false,
+                IsInsulator = true,
+                // Thermal
+                MeltingPoint = -259.14,
+                BoilingPoint = -252.87,
+                ThermalConductivity = 0.1805,
+                HeatCapacity = 28.8,
+                PhaseAtRoomTemp = MaterialPhase.Gas
             };
 
             // Helium
@@ -40,7 +57,24 @@ namespace BiochemSimulator.Engine
                 ElectronShells = new List<int> { 2 },
                 Color = Colors.Cyan,
                 Electronegativity = 0,
-                Reactivity = 0.0
+                Reactivity = 0.0,
+                // Radiological
+                IsRadioactive = false,
+                HalfLife = 0,
+                DecayType = RadioactiveDecayType.None,
+                RadiationLevel = 0,
+                // Electrical
+                ElectricalConductivity = 0.00001,
+                IonizationEnergy = 24.6, // Highest ionization energy
+                IonCharge = 0,
+                IsConductor = false,
+                IsInsulator = true,
+                // Thermal
+                MeltingPoint = -272.2,
+                BoilingPoint = -268.93,
+                ThermalConductivity = 0.1513,
+                HeatCapacity = 20.8,
+                PhaseAtRoomTemp = MaterialPhase.Gas
             };
 
             // Carbon
@@ -51,7 +85,24 @@ namespace BiochemSimulator.Engine
                 ElectronShells = new List<int> { 2, 4 },
                 Color = Colors.Black,
                 Electronegativity = 2.55,
-                Reactivity = 5.0
+                Reactivity = 5.0,
+                // Radiological
+                IsRadioactive = false,
+                HalfLife = 0,
+                DecayType = RadioactiveDecayType.None,
+                RadiationLevel = 0,
+                // Electrical
+                ElectricalConductivity = 100000, // As graphite
+                IonizationEnergy = 11.3,
+                IonCharge = 0,
+                IsConductor = true,
+                IsInsulator = false,
+                // Thermal
+                MeltingPoint = 3550, // Sublimes
+                BoilingPoint = 4827,
+                ThermalConductivity = 140,
+                HeatCapacity = 8.5,
+                PhaseAtRoomTemp = MaterialPhase.Solid
             };
 
             // Nitrogen
@@ -62,7 +113,24 @@ namespace BiochemSimulator.Engine
                 ElectronShells = new List<int> { 2, 5 },
                 Color = Colors.Blue,
                 Electronegativity = 3.04,
-                Reactivity = 6.0
+                Reactivity = 6.0,
+                // Radiological
+                IsRadioactive = false,
+                HalfLife = 0,
+                DecayType = RadioactiveDecayType.None,
+                RadiationLevel = 0,
+                // Electrical
+                ElectricalConductivity = 0.00001,
+                IonizationEnergy = 14.5,
+                IonCharge = 0,
+                IsConductor = false,
+                IsInsulator = true,
+                // Thermal
+                MeltingPoint = -210.0,
+                BoilingPoint = -195.8,
+                ThermalConductivity = 0.026,
+                HeatCapacity = 29.1,
+                PhaseAtRoomTemp = MaterialPhase.Gas
             };
 
             // Oxygen
@@ -73,7 +141,24 @@ namespace BiochemSimulator.Engine
                 ElectronShells = new List<int> { 2, 6 },
                 Color = Colors.Red,
                 Electronegativity = 3.44,
-                Reactivity = 8.0
+                Reactivity = 8.0,
+                // Radiological
+                IsRadioactive = false,
+                HalfLife = 0,
+                DecayType = RadioactiveDecayType.None,
+                RadiationLevel = 0,
+                // Electrical
+                ElectricalConductivity = 0.00001,
+                IonizationEnergy = 13.6,
+                IonCharge = 0,
+                IsConductor = false,
+                IsInsulator = true,
+                // Thermal
+                MeltingPoint = -218.4,
+                BoilingPoint = -183.0,
+                ThermalConductivity = 0.026,
+                HeatCapacity = 29.4,
+                PhaseAtRoomTemp = MaterialPhase.Gas
             };
 
             // Fluorine
@@ -84,7 +169,24 @@ namespace BiochemSimulator.Engine
                 ElectronShells = new List<int> { 2, 7 },
                 Color = Colors.LightGreen,
                 Electronegativity = 3.98,
-                Reactivity = 10.0
+                Reactivity = 10.0,
+                // Radiological
+                IsRadioactive = false,
+                HalfLife = 0,
+                DecayType = RadioactiveDecayType.None,
+                RadiationLevel = 0,
+                // Electrical
+                ElectricalConductivity = 0.00001,
+                IonizationEnergy = 17.4, // Very high
+                IonCharge = 0,
+                IsConductor = false,
+                IsInsulator = true,
+                // Thermal
+                MeltingPoint = -219.6,
+                BoilingPoint = -188.1,
+                ThermalConductivity = 0.028,
+                HeatCapacity = 31.3,
+                PhaseAtRoomTemp = MaterialPhase.Gas
             };
 
             // Sodium
@@ -95,7 +197,24 @@ namespace BiochemSimulator.Engine
                 ElectronShells = new List<int> { 2, 8, 1 },
                 Color = Colors.Yellow,
                 Electronegativity = 0.93,
-                Reactivity = 9.0
+                Reactivity = 9.0,
+                // Radiological
+                IsRadioactive = false,
+                HalfLife = 0,
+                DecayType = RadioactiveDecayType.None,
+                RadiationLevel = 0,
+                // Electrical
+                ElectricalConductivity = 21000000, // Excellent conductor
+                IonizationEnergy = 5.1,
+                IonCharge = 0,
+                IsConductor = true,
+                IsInsulator = false,
+                // Thermal
+                MeltingPoint = 97.7,
+                BoilingPoint = 883,
+                ThermalConductivity = 142,
+                HeatCapacity = 28.2,
+                PhaseAtRoomTemp = MaterialPhase.Solid
             };
 
             // Magnesium
@@ -106,7 +225,24 @@ namespace BiochemSimulator.Engine
                 ElectronShells = new List<int> { 2, 8, 2 },
                 Color = Colors.Silver,
                 Electronegativity = 1.31,
-                Reactivity = 7.0
+                Reactivity = 7.0,
+                // Radiological
+                IsRadioactive = false,
+                HalfLife = 0,
+                DecayType = RadioactiveDecayType.None,
+                RadiationLevel = 0,
+                // Electrical
+                ElectricalConductivity = 23000000,
+                IonizationEnergy = 7.6,
+                IonCharge = 0,
+                IsConductor = true,
+                IsInsulator = false,
+                // Thermal
+                MeltingPoint = 650,
+                BoilingPoint = 1090,
+                ThermalConductivity = 156,
+                HeatCapacity = 24.9,
+                PhaseAtRoomTemp = MaterialPhase.Solid
             };
 
             // Phosphorus
@@ -117,7 +253,24 @@ namespace BiochemSimulator.Engine
                 ElectronShells = new List<int> { 2, 8, 5 },
                 Color = Colors.Orange,
                 Electronegativity = 2.19,
-                Reactivity = 7.0
+                Reactivity = 7.0,
+                // Radiological
+                IsRadioactive = false,
+                HalfLife = 0,
+                DecayType = RadioactiveDecayType.None,
+                RadiationLevel = 0,
+                // Electrical
+                ElectricalConductivity = 0.0001, // Poor conductor
+                IonizationEnergy = 10.5,
+                IonCharge = 0,
+                IsConductor = false,
+                IsInsulator = true,
+                // Thermal
+                MeltingPoint = 44.1,
+                BoilingPoint = 280,
+                ThermalConductivity = 0.236,
+                HeatCapacity = 23.8,
+                PhaseAtRoomTemp = MaterialPhase.Solid
             };
 
             // Sulfur
@@ -128,7 +281,24 @@ namespace BiochemSimulator.Engine
                 ElectronShells = new List<int> { 2, 8, 6 },
                 Color = Colors.Yellow,
                 Electronegativity = 2.58,
-                Reactivity = 6.0
+                Reactivity = 6.0,
+                // Radiological
+                IsRadioactive = false,
+                HalfLife = 0,
+                DecayType = RadioactiveDecayType.None,
+                RadiationLevel = 0,
+                // Electrical
+                ElectricalConductivity = 0.000000000000001, // Insulator
+                IonizationEnergy = 10.4,
+                IonCharge = 0,
+                IsConductor = false,
+                IsInsulator = true,
+                // Thermal
+                MeltingPoint = 115.2,
+                BoilingPoint = 444.6,
+                ThermalConductivity = 0.205,
+                HeatCapacity = 22.6,
+                PhaseAtRoomTemp = MaterialPhase.Solid
             };
 
             // Chlorine
@@ -139,7 +309,24 @@ namespace BiochemSimulator.Engine
                 ElectronShells = new List<int> { 2, 8, 7 },
                 Color = Colors.Green,
                 Electronegativity = 3.16,
-                Reactivity = 9.0
+                Reactivity = 9.0,
+                // Radiological
+                IsRadioactive = false,
+                HalfLife = 0,
+                DecayType = RadioactiveDecayType.None,
+                RadiationLevel = 0,
+                // Electrical
+                ElectricalConductivity = 0.00001,
+                IonizationEnergy = 12.97,
+                IonCharge = 0,
+                IsConductor = false,
+                IsInsulator = true,
+                // Thermal
+                MeltingPoint = -101.5,
+                BoilingPoint = -34.04,
+                ThermalConductivity = 0.009,
+                HeatCapacity = 33.9,
+                PhaseAtRoomTemp = MaterialPhase.Gas
             };
 
             // Potassium
@@ -150,7 +337,24 @@ namespace BiochemSimulator.Engine
                 ElectronShells = new List<int> { 2, 8, 8, 1 },
                 Color = Colors.Violet,
                 Electronegativity = 0.82,
-                Reactivity = 9.5
+                Reactivity = 9.5,
+                // Radiological
+                IsRadioactive = false,
+                HalfLife = 0,
+                DecayType = RadioactiveDecayType.None,
+                RadiationLevel = 0,
+                // Electrical
+                ElectricalConductivity = 14000000,
+                IonizationEnergy = 4.3, // Very low - easily ionizes
+                IonCharge = 0,
+                IsConductor = true,
+                IsInsulator = false,
+                // Thermal
+                MeltingPoint = 63.5,
+                BoilingPoint = 759,
+                ThermalConductivity = 102,
+                HeatCapacity = 29.6,
+                PhaseAtRoomTemp = MaterialPhase.Solid
             };
 
             // Calcium
@@ -161,7 +365,24 @@ namespace BiochemSimulator.Engine
                 ElectronShells = new List<int> { 2, 8, 8, 2 },
                 Color = Colors.Gray,
                 Electronegativity = 1.00,
-                Reactivity = 7.0
+                Reactivity = 7.0,
+                // Radiological
+                IsRadioactive = false,
+                HalfLife = 0,
+                DecayType = RadioactiveDecayType.None,
+                RadiationLevel = 0,
+                // Electrical
+                ElectricalConductivity = 29000000,
+                IonizationEnergy = 6.1,
+                IonCharge = 0,
+                IsConductor = true,
+                IsInsulator = false,
+                // Thermal
+                MeltingPoint = 842,
+                BoilingPoint = 1484,
+                ThermalConductivity = 201,
+                HeatCapacity = 25.3,
+                PhaseAtRoomTemp = MaterialPhase.Solid
             };
 
             // Manganese
@@ -172,7 +393,24 @@ namespace BiochemSimulator.Engine
                 ElectronShells = new List<int> { 2, 8, 13, 2 },
                 Color = Colors.Purple,
                 Electronegativity = 1.55,
-                Reactivity = 6.0
+                Reactivity = 6.0,
+                // Radiological
+                IsRadioactive = false,
+                HalfLife = 0,
+                DecayType = RadioactiveDecayType.None,
+                RadiationLevel = 0,
+                // Electrical
+                ElectricalConductivity = 690000,
+                IonizationEnergy = 7.4,
+                IonCharge = 0,
+                IsConductor = true,
+                IsInsulator = false,
+                // Thermal
+                MeltingPoint = 1246,
+                BoilingPoint = 2061,
+                ThermalConductivity = 7.8,
+                HeatCapacity = 26.3,
+                PhaseAtRoomTemp = MaterialPhase.Solid
             };
 
             // Iron
@@ -183,7 +421,138 @@ namespace BiochemSimulator.Engine
                 ElectronShells = new List<int> { 2, 8, 14, 2 },
                 Color = Colors.Brown,
                 Electronegativity = 1.83,
-                Reactivity = 5.0
+                Reactivity = 5.0,
+                // Radiological
+                IsRadioactive = false,
+                HalfLife = 0,
+                DecayType = RadioactiveDecayType.None,
+                RadiationLevel = 0,
+                // Electrical
+                ElectricalConductivity = 10000000,
+                IonizationEnergy = 7.9,
+                IonCharge = 0,
+                IsConductor = true,
+                IsInsulator = false,
+                // Thermal
+                MeltingPoint = 1538,
+                BoilingPoint = 2862,
+                ThermalConductivity = 80.4,
+                HeatCapacity = 25.1,
+                PhaseAtRoomTemp = MaterialPhase.Solid
+            };
+
+            // RADIOACTIVE ELEMENTS
+
+            // Radium (highly radioactive)
+            _atomicTable["Ra"] = new Atom("Ra", "Radium", 88, 226)
+            {
+                ValenceElectrons = 2,
+                MaxBonds = 2,
+                ElectronShells = new List<int> { 2, 8, 18, 32, 18, 8, 2 },
+                Color = Color.FromRgb(0, 255, 128), // Greenish glow
+                Electronegativity = 0.9,
+                Reactivity = 8.0,
+                // Radiological - HIGHLY RADIOACTIVE
+                IsRadioactive = true,
+                HalfLife = 1600, // years
+                DecayType = RadioactiveDecayType.Alpha,
+                RadiationLevel = 9.0,
+                // Electrical
+                ElectricalConductivity = 1000000,
+                IonizationEnergy = 5.3,
+                IonCharge = 0,
+                IsConductor = true,
+                IsInsulator = false,
+                // Thermal
+                MeltingPoint = 700,
+                BoilingPoint = 1737,
+                ThermalConductivity = 18.6,
+                HeatCapacity = 26.0,
+                PhaseAtRoomTemp = MaterialPhase.Solid
+            };
+
+            // Uranium-235 (nuclear fuel)
+            _atomicTable["U"] = new Atom("U", "Uranium", 92, 235)
+            {
+                ValenceElectrons = 6,
+                MaxBonds = 6,
+                ElectronShells = new List<int> { 2, 8, 18, 32, 21, 9, 2 },
+                Color = Color.FromRgb(0, 200, 255), // Blue-green
+                Electronegativity = 1.38,
+                Reactivity = 7.0,
+                // Radiological - FISSIONABLE
+                IsRadioactive = true,
+                HalfLife = 704000000, // 704 million years
+                DecayType = RadioactiveDecayType.Fission,
+                RadiationLevel = 8.5,
+                // Electrical
+                ElectricalConductivity = 3800000,
+                IonizationEnergy = 6.2,
+                IonCharge = 0,
+                IsConductor = true,
+                IsInsulator = false,
+                // Thermal
+                MeltingPoint = 1132,
+                BoilingPoint = 4131,
+                ThermalConductivity = 27.6,
+                HeatCapacity = 27.7,
+                PhaseAtRoomTemp = MaterialPhase.Solid
+            };
+
+            // Plutonium-239 (weapons-grade)
+            _atomicTable["Pu"] = new Atom("Pu", "Plutonium", 94, 239)
+            {
+                ValenceElectrons = 6,
+                MaxBonds = 6,
+                ElectronShells = new List<int> { 2, 8, 18, 32, 24, 8, 2 },
+                Color = Color.FromRgb(255, 50, 50), // Red glow
+                Electronegativity = 1.28,
+                Reactivity = 8.5,
+                // Radiological - EXTREMELY DANGEROUS
+                IsRadioactive = true,
+                HalfLife = 24100, // years
+                DecayType = RadioactiveDecayType.Alpha,
+                RadiationLevel = 10.0, // Maximum danger
+                // Electrical
+                ElectricalConductivity = 667000,
+                IonizationEnergy = 6.0,
+                IonCharge = 0,
+                IsConductor = true,
+                IsInsulator = false,
+                // Thermal
+                MeltingPoint = 640,
+                BoilingPoint = 3228,
+                ThermalConductivity = 6.7,
+                HeatCapacity = 35.5,
+                PhaseAtRoomTemp = MaterialPhase.Solid
+            };
+
+            // Polonium-210 (extremely radioactive)
+            _atomicTable["Po"] = new Atom("Po", "Polonium", 84, 210)
+            {
+                ValenceElectrons = 6,
+                MaxBonds = 6,
+                ElectronShells = new List<int> { 2, 8, 18, 32, 18, 6 },
+                Color = Color.FromRgb(255, 255, 0), // Yellow glow
+                Electronegativity = 2.0,
+                Reactivity = 7.5,
+                // Radiological - DEADLY
+                IsRadioactive = true,
+                HalfLife = 0.379, // 138 days in years
+                DecayType = RadioactiveDecayType.Alpha,
+                RadiationLevel = 9.8,
+                // Electrical
+                ElectricalConductivity = 2330000,
+                IonizationEnergy = 8.4,
+                IonCharge = 0,
+                IsConductor = true,
+                IsInsulator = false,
+                // Thermal
+                MeltingPoint = 254,
+                BoilingPoint = 962,
+                ThermalConductivity = 20,
+                HeatCapacity = 26.4,
+                PhaseAtRoomTemp = MaterialPhase.Solid
             };
         }
 
@@ -469,20 +838,65 @@ namespace BiochemSimulator.Engine
             bool hasOxidizer = molecules.Any(m => m.Formula == "O2");
             bool hasUnstable = molecules.Any(m => m.Stability == MoleculeStability.Unstable);
 
-            if (hasExplosive && hasFlammable)
+            // Check for radioactive materials
+            bool hasRadioactive = molecules.Any(m => m.Atoms.Any(a => a.IsRadioactive));
+            double maxRadiationLevel = 0;
+            if (hasRadioactive)
+            {
+                maxRadiationLevel = molecules
+                    .SelectMany(m => m.Atoms)
+                    .Where(a => a.IsRadioactive)
+                    .Max(a => a.RadiationLevel);
+            }
+
+            // Extreme radiation hazard takes priority
+            if (maxRadiationLevel >= 9.0)
+            {
+                hazard.Level = HazardLevel.Extreme;
+                hazard.Warnings.Add("☢️ EXTREME RADIATION HAZARD: Highly radioactive material present! LETHAL exposure risk!");
+
+                var radioactiveAtoms = molecules
+                    .SelectMany(m => m.Atoms)
+                    .Where(a => a.IsRadioactive)
+                    .Select(a => a.Symbol)
+                    .Distinct()
+                    .ToList();
+
+                foreach (var symbol in radioactiveAtoms)
+                {
+                    var atom = molecules.SelectMany(m => m.Atoms).First(a => a.Symbol == symbol && a.IsRadioactive);
+                    hazard.Warnings.Add($"  - {atom.Name} ({symbol}): {GetDecayTypeDescription(atom.DecayType)}, Half-life: {FormatHalfLife(atom.HalfLife)}");
+                }
+            }
+            else if (hasExplosive && hasFlammable)
             {
                 hazard.Level = HazardLevel.Extreme;
                 hazard.Warnings.Add("EXTREME DANGER: Explosive and flammable materials in proximity!");
+            }
+            else if (maxRadiationLevel >= 7.0)
+            {
+                hazard.Level = HazardLevel.High;
+                hazard.Warnings.Add("☢️ HIGH RADIATION HAZARD: Radioactive material present. Minimize exposure!");
             }
             else if (hasFlammable && hasOxidizer)
             {
                 hazard.Level = HazardLevel.High;
                 hazard.Warnings.Add("HIGH DANGER: Flammable material with oxidizer - fire/explosion risk!");
             }
+            else if (maxRadiationLevel >= 4.0)
+            {
+                hazard.Level = HazardLevel.Moderate;
+                hazard.Warnings.Add("☢️ CAUTION: Radioactive material present. Avoid prolonged exposure.");
+            }
             else if (hasExplosive)
             {
                 hazard.Level = HazardLevel.Moderate;
                 hazard.Warnings.Add("CAUTION: Explosive material present. Handle carefully.");
+            }
+            else if (hasRadioactive)
+            {
+                hazard.Level = HazardLevel.Low;
+                hazard.Warnings.Add($"☢️ Low-level radiation detected (Level {maxRadiationLevel:F1}).");
             }
             else if (hasUnstable)
             {
@@ -491,6 +905,33 @@ namespace BiochemSimulator.Engine
             }
 
             return hazard;
+        }
+
+        private string GetDecayTypeDescription(RadioactiveDecayType decayType)
+        {
+            return decayType switch
+            {
+                RadioactiveDecayType.Alpha => "Alpha decay (Helium nuclei emission)",
+                RadioactiveDecayType.Beta => "Beta decay (Electron emission)",
+                RadioactiveDecayType.Gamma => "Gamma decay (High-energy radiation)",
+                RadioactiveDecayType.Positron => "Positron emission",
+                RadioactiveDecayType.Fission => "Nuclear fission (Chain reaction possible!)",
+                _ => "Stable"
+            };
+        }
+
+        private string FormatHalfLife(double halfLifeYears)
+        {
+            if (halfLifeYears == 0)
+                return "Stable";
+            else if (halfLifeYears < 1)
+                return $"{halfLifeYears * 365.25:F1} days";
+            else if (halfLifeYears < 1000)
+                return $"{halfLifeYears:F1} years";
+            else if (halfLifeYears < 1000000)
+                return $"{halfLifeYears / 1000:F1} thousand years";
+            else
+                return $"{halfLifeYears / 1000000:F1} million years";
         }
     }
 

@@ -689,8 +689,38 @@ namespace BiochemSimulator
                 ),
                 Stroke = Brushes.White,
                 StrokeThickness = 2,
-                Tag = atom
+                Tag = atom,
+                ToolTip = CreateAtomTooltip(atom)
             };
+
+            // Add radiation glow effect for radioactive atoms
+            if (atom.IsRadioactive)
+            {
+                var glowColor = GetRadiationGlowColor(atom.RadiationLevel, atom.Color);
+                ellipse.Effect = new System.Windows.Media.Effects.DropShadowEffect
+                {
+                    Color = glowColor,
+                    BlurRadius = 15 + (atom.RadiationLevel * 2),
+                    ShadowDepth = 0,
+                    Opacity = 0.8
+                };
+                ellipse.StrokeThickness = 3;
+                ellipse.Stroke = new SolidColorBrush(glowColor);
+
+                // Animate the glow for high radiation
+                if (atom.RadiationLevel >= 7.0)
+                {
+                    var animation = new System.Windows.Media.Animation.DoubleAnimation
+                    {
+                        From = 0.6,
+                        To = 1.0,
+                        Duration = TimeSpan.FromSeconds(1),
+                        AutoReverse = true,
+                        RepeatBehavior = System.Windows.Media.Animation.RepeatBehavior.Forever
+                    };
+                    ellipse.BeginAnimation(UIElement.OpacityProperty, animation);
+                }
+            }
 
             var text = new TextBlock
             {
@@ -711,6 +741,114 @@ namespace BiochemSimulator
             AtomicCanvas.Children.Add(text);
 
             _atomVisuals.Add(new AtomVisual { Atom = atom, Ellipse = ellipse, Text = text });
+        }
+
+        private Color GetRadiationGlowColor(double radiationLevel, Color atomColor)
+        {
+            if (radiationLevel >= 9.0)
+                return Color.FromRgb(255, 0, 255); // Magenta for extreme radiation
+            else if (radiationLevel >= 7.0)
+                return Color.FromRgb(255, 50, 50); // Red for high radiation
+            else if (radiationLevel >= 4.0)
+                return Color.FromRgb(255, 200, 0); // Yellow for moderate radiation
+            else
+                return Color.FromRgb(100, 255, 100); // Green for low radiation
+        }
+
+        private string CreateAtomTooltip(Atom atom)
+        {
+            var tooltip = new System.Text.StringBuilder();
+            tooltip.AppendLine($"═══ {atom.Name} ({atom.Symbol}) ═══");
+            tooltip.AppendLine();
+
+            // Basic Properties
+            tooltip.AppendLine("⚛️ ATOMIC PROPERTIES");
+            tooltip.AppendLine($"  Atomic Number: {atom.AtomicNumber}");
+            tooltip.AppendLine($"  Atomic Mass: {atom.AtomicMass:F3} amu");
+            tooltip.AppendLine($"  Protons: {atom.Protons}");
+            tooltip.AppendLine($"  Neutrons: {atom.Neutrons}");
+            tooltip.AppendLine($"  Electrons: {atom.Electrons}");
+            tooltip.AppendLine($"  Valence Electrons: {atom.ValenceElectrons}");
+            tooltip.AppendLine($"  Max Bonds: {atom.MaxBonds}");
+            tooltip.AppendLine($"  Electronegativity: {atom.Electronegativity:F2}");
+            tooltip.AppendLine($"  Reactivity: {atom.Reactivity:F1}/10");
+            tooltip.AppendLine();
+
+            // Radiological Properties
+            if (atom.IsRadioactive)
+            {
+                tooltip.AppendLine("☢️ RADIOLOGICAL PROPERTIES");
+                tooltip.AppendLine($"  ⚠️ RADIOACTIVE!");
+                tooltip.AppendLine($"  Decay Type: {GetDecayTypeText(atom.DecayType)}");
+                tooltip.AppendLine($"  Half-Life: {FormatHalfLife(atom.HalfLife)}");
+                tooltip.AppendLine($"  Radiation Level: {atom.RadiationLevel:F1}/10");
+                tooltip.AppendLine();
+            }
+
+            // Electrical Properties
+            tooltip.AppendLine("⚡ ELECTRICAL PROPERTIES");
+            tooltip.AppendLine($"  Conductivity: {FormatConductivity(atom.ElectricalConductivity)}");
+            tooltip.AppendLine($"  Type: {(atom.IsConductor ? "Conductor" : "Insulator")}");
+            tooltip.AppendLine($"  Ionization Energy: {atom.IonizationEnergy:F2} eV");
+            tooltip.AppendLine($"  Ion Charge: {(atom.IonCharge == 0 ? "Neutral" : $"{atom.IonCharge:+0;-0}")}");
+            tooltip.AppendLine();
+
+            // Thermal Properties
+            tooltip.AppendLine("🌡️ THERMAL PROPERTIES");
+            tooltip.AppendLine($"  Melting Point: {atom.MeltingPoint:F1}°C");
+            tooltip.AppendLine($"  Boiling Point: {atom.BoilingPoint:F1}°C");
+            tooltip.AppendLine($"  Phase at 25°C: {atom.PhaseAtRoomTemp}");
+            tooltip.AppendLine($"  Thermal Conductivity: {atom.ThermalConductivity:F3} W/(m·K)");
+            tooltip.AppendLine($"  Heat Capacity: {atom.HeatCapacity:F2} J/(mol·K)");
+
+            return tooltip.ToString();
+        }
+
+        private string GetDecayTypeText(RadioactiveDecayType decayType)
+        {
+            return decayType switch
+            {
+                RadioactiveDecayType.Alpha => "Alpha (α) - Helium nuclei",
+                RadioactiveDecayType.Beta => "Beta (β) - Electron emission",
+                RadioactiveDecayType.Gamma => "Gamma (γ) - EM radiation",
+                RadioactiveDecayType.Positron => "Positron (β+)",
+                RadioactiveDecayType.Fission => "Nuclear Fission ⚠️",
+                _ => "Stable"
+            };
+        }
+
+        private string FormatHalfLife(double halfLifeYears)
+        {
+            if (halfLifeYears == 0)
+                return "Stable (∞)";
+            else if (halfLifeYears < 0.01)
+                return $"{halfLifeYears * 365.25 * 24:F1} hours";
+            else if (halfLifeYears < 1)
+                return $"{halfLifeYears * 365.25:F1} days";
+            else if (halfLifeYears < 1000)
+                return $"{halfLifeYears:F1} years";
+            else if (halfLifeYears < 1000000)
+                return $"{halfLifeYears / 1000:F1}k years";
+            else if (halfLifeYears < 1000000000)
+                return $"{halfLifeYears / 1000000:F1}M years";
+            else
+                return $"{halfLifeYears / 1000000000:F2}B years";
+        }
+
+        private string FormatConductivity(double conductivity)
+        {
+            if (conductivity >= 1000000)
+                return $"{conductivity / 1000000:F2} MS/m (Excellent)";
+            else if (conductivity >= 100000)
+                return $"{conductivity / 1000:F2} kS/m (Very Good)";
+            else if (conductivity >= 1000)
+                return $"{conductivity / 1000:F2} kS/m (Good)";
+            else if (conductivity >= 1)
+                return $"{conductivity:F2} S/m (Moderate)";
+            else if (conductivity >= 0.001)
+                return $"{conductivity * 1000:F2} mS/m (Poor)";
+            else
+                return $"{conductivity:E2} S/m (Insulator)";
         }
 
         private void AtomicCanvas_MouseMove(object sender, MouseEventArgs e)

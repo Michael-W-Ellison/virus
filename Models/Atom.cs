@@ -18,7 +18,27 @@ namespace BiochemSimulator.Models
         public Color Color { get; set; }
         public double Electronegativity { get; set; }
         public AtomState State { get; set; }
+
+        // Radiological Properties
         public bool IsRadioactive { get; set; }
+        public double HalfLife { get; set; } // in years (0 = stable)
+        public RadioactiveDecayType DecayType { get; set; }
+        public double RadiationLevel { get; set; } // 0-10 scale
+
+        // Electrical Properties
+        public double ElectricalConductivity { get; set; } // Siemens/meter (S/m)
+        public double IonizationEnergy { get; set; } // in eV
+        public int IonCharge { get; set; } // 0 = neutral, +/- for ions
+        public bool IsConductor { get; set; }
+        public bool IsInsulator { get; set; }
+
+        // Thermal Properties
+        public double MeltingPoint { get; set; } // in Celsius
+        public double BoilingPoint { get; set; } // in Celsius
+        public double ThermalConductivity { get; set; } // W/(m·K)
+        public double HeatCapacity { get; set; } // J/(mol·K)
+        public MaterialPhase PhaseAtRoomTemp { get; set; }
+
         public double Reactivity { get; set; } // 0-10 scale
         public Point Position { get; set; }
         public List<Bond> Bonds { get; set; }
@@ -35,6 +55,8 @@ namespace BiochemSimulator.Models
             ElectronShells = new List<int>();
             Bonds = new List<Bond>();
             State = AtomState.Stable;
+            DecayType = RadioactiveDecayType.None;
+            PhaseAtRoomTemp = MaterialPhase.Solid;
         }
 
         public bool CanBond()
@@ -61,6 +83,19 @@ namespace BiochemSimulator.Models
                 Electronegativity = Electronegativity,
                 State = State,
                 IsRadioactive = IsRadioactive,
+                HalfLife = HalfLife,
+                DecayType = DecayType,
+                RadiationLevel = RadiationLevel,
+                ElectricalConductivity = ElectricalConductivity,
+                IonizationEnergy = IonizationEnergy,
+                IonCharge = IonCharge,
+                IsConductor = IsConductor,
+                IsInsulator = IsInsulator,
+                MeltingPoint = MeltingPoint,
+                BoilingPoint = BoilingPoint,
+                ThermalConductivity = ThermalConductivity,
+                HeatCapacity = HeatCapacity,
+                PhaseAtRoomTemp = PhaseAtRoomTemp,
                 Reactivity = Reactivity,
                 Position = Position
             };
@@ -226,5 +261,23 @@ namespace BiochemSimulator.Models
         Unstable,
         HighlyReactive,
         Explosive
+    }
+
+    public enum RadioactiveDecayType
+    {
+        None,           // Stable element
+        Alpha,          // α decay - emits helium nucleus
+        Beta,           // β decay - electron emission
+        Gamma,          // γ decay - electromagnetic radiation
+        Positron,       // β+ decay - positron emission
+        Fission         // Nuclear fission
+    }
+
+    public enum MaterialPhase
+    {
+        Solid,
+        Liquid,
+        Gas,
+        Plasma
     }
 }

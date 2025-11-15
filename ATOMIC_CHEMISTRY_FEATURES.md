@@ -344,6 +344,172 @@ After playing, students will understand:
 
 ---
 
+## ☢️ RADIOLOGICAL PROPERTIES (NEW!)
+
+### Radioactive Elements
+
+The system now includes **radioactive elements** with realistic decay properties:
+
+| Element | Symbol | Decay Type | Half-Life | Radiation Level | Hazard |
+|---------|--------|------------|-----------|----------------|--------|
+| **Radium** | Ra | Alpha (α) | 1,600 years | 9.0/10 | ☢️ EXTREME |
+| **Uranium-235** | U | Fission | 704M years | 8.5/10 | ☢️ EXTREME |
+| **Plutonium-239** | Pu | Alpha (α) | 24,100 years | 10.0/10 | ☢️ DEADLY |
+| **Polonium-210** | Po | Alpha (α) | 138 days | 9.8/10 | ☢️ DEADLY |
+
+### Radiation Effects
+
+- **Visual Glow**: Radioactive atoms emit a colored glow based on radiation level
+  - Green glow: Low radiation (1-3)
+  - Yellow glow: Moderate radiation (4-6)
+  - Red glow: High radiation (7-8)
+  - Magenta glow: Extreme radiation (9-10)
+- **Pulsing Animation**: High-radiation atoms (≥7.0) pulse to draw attention
+- **Hazard Warnings**: Real-time radiation hazard detection with detailed warnings
+
+### Decay Types
+
+1. **Alpha Decay (α)** - Emits helium nuclei (Ra, Pu, Po)
+2. **Beta Decay (β)** - Electron emission
+3. **Gamma Decay (γ)** - High-energy electromagnetic radiation
+4. **Positron Emission (β+)** - Antimatter emission
+5. **Nuclear Fission** - Chain reaction possible (U-235)
+
+---
+
+## ⚡ ELECTRICAL PROPERTIES (NEW!)
+
+### Conductivity Classification
+
+All atoms now have electrical conductivity values:
+
+**Excellent Conductors** (>10 MS/m):
+- Sodium (Na): 21 MS/m
+- Magnesium (Mg): 23 MS/m
+- Calcium (Ca): 29 MS/m
+- Iron (Fe): 10 MS/m
+- Potassium (K): 14 MS/m
+
+**Insulators** (<0.01 S/m):
+- Hydrogen (H): Gas
+- Oxygen (O): Gas
+- Nitrogen (N): Gas
+- Sulfur (S): Solid
+- Chlorine (Cl): Gas
+
+### Ionization Energy
+
+- **Low IE (<6 eV)**: Easily forms ions (Na, K)
+- **High IE (>12 eV)**: Difficult to ionize (F, Cl, O, He)
+- **Highest IE**: Helium (24.6 eV) - most stable
+
+### Ion Formation
+
+Atoms can form ions based on their properties:
+- Alkali metals (Na, K): Form +1 cations easily
+- Halogens (F, Cl): Form -1 anions easily
+- Transition metals (Fe, Mn): Variable oxidation states
+
+---
+
+## 🌡️ THERMAL PROPERTIES (NEW!)
+
+### Phase States at Room Temperature (25°C)
+
+**Gases**:
+- Hydrogen (H₂): -252.87°C boiling point
+- Helium (He): -268.93°C boiling point
+- Nitrogen (N₂): -195.8°C boiling point
+- Oxygen (O₂): -183°C boiling point
+- Fluorine (F₂): -188.1°C boiling point
+- Chlorine (Cl₂): -34.04°C boiling point
+
+**Solids**:
+- Carbon (C): 3550°C melting point
+- Iron (Fe): 1538°C melting point
+- Sodium (Na): 97.7°C melting point
+- All metals and most non-metals
+
+### Temperature Ranges
+
+Each atom includes:
+- **Melting Point**: Temperature at which solid becomes liquid
+- **Boiling Point**: Temperature at which liquid becomes gas
+- **Thermal Conductivity**: Heat transfer efficiency (W/m·K)
+- **Heat Capacity**: Energy needed to raise temperature (J/mol·K)
+
+### Extreme Temperature Elements
+
+**Highest Melting Points**:
+1. Carbon: 3550°C (sublimes directly to gas)
+2. Iron: 1538°C
+3. Manganese: 1246°C
+
+**Lowest Melting Points**:
+1. Helium: -272.2°C (coldest)
+2. Hydrogen: -259.14°C
+3. Nitrogen: -210°C
+
+---
+
+## 🎮 ENHANCED GAMEPLAY FEATURES
+
+### Comprehensive Atom Tooltips
+
+Hovering over any atom displays:
+
+```
+═══ Plutonium (Pu) ═══
+
+⚛️ ATOMIC PROPERTIES
+  Atomic Number: 94
+  Atomic Mass: 239.000 amu
+  Valence Electrons: 6
+  Reactivity: 8.5/10
+
+☢️ RADIOLOGICAL PROPERTIES
+  ⚠️ RADIOACTIVE!
+  Decay Type: Alpha (α) - Helium nuclei
+  Half-Life: 24.1k years
+  Radiation Level: 10.0/10
+
+⚡ ELECTRICAL PROPERTIES
+  Conductivity: 0.67 MS/m (Moderate)
+  Type: Conductor
+  Ionization Energy: 6.00 eV
+
+🌡️ THERMAL PROPERTIES
+  Melting Point: 640.0°C
+  Boiling Point: 3228.0°C
+  Phase at 25°C: Solid
+  Thermal Conductivity: 6.700 W/(m·K)
+```
+
+### Radiation Hazard System
+
+The hazard detection now includes radiation warnings:
+
+**Extreme Radiation (≥9.0)**:
+```
+☢️ EXTREME RADIATION HAZARD: Highly radioactive material present!
+LETHAL exposure risk!
+  - Plutonium (Pu): Alpha (α), Half-life: 24.1k years
+```
+
+**High Radiation (≥7.0)**:
+```
+☢️ HIGH RADIATION HAZARD: Radioactive material present.
+Minimize exposure!
+```
+
+**Moderate Radiation (≥4.0)**:
+```
+☢️ CAUTION: Radioactive material present.
+Avoid prolonged exposure.
+```
+
+---
+
 ## 🚀 Future Enhancements
 
 Potential additions to the atomic system:
@@ -353,9 +519,13 @@ Potential additions to the atomic system:
 - [ ] **Reaction Energy Graphs** - Energy diagrams
 - [ ] **Mass Spectrometry Mini-Game** - Identify molecules
 - [ ] **pH and Acid-Base at Atomic Level** - H⁺ ions
-- [ ] **Radioactive Decay** - Unstable isotopes
+- [x] **Radioactive Decay** - Unstable isotopes ✅ IMPLEMENTED
 - [ ] **Catalysis Simulation** - Enzymes and catalysts
-- [ ] **Thermodynamics Integration** - Enthalpy, entropy
+- [x] **Thermodynamics Integration** - Enthalpy, entropy ✅ PARTIAL
+- [x] **Electrical Conductivity** - Metallic bonding ✅ IMPLEMENTED
+- [ ] **Radiation Particle Effects** - Animated decay particles
+- [ ] **Temperature-Dependent Reactions** - Phase changes during gameplay
+- [ ] **Electrical Discharge Animations** - Sparks between conductors
 
 ---
 
