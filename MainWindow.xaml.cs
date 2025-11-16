@@ -149,10 +149,35 @@ namespace BiochemSimulator
                         UpdateChemicalInventory();
                         break;
 
+                    case GameState.CreatingLife:
+                        // Show simulator view as we create primitive cells
+                        SimulatorView.Visibility = Visibility.Visible;
+                        UpdateChemicalInventory();
+                        MicroscopeView.Visibility = Visibility.Collapsed;
+                        TrashCan.Visibility = Visibility.Collapsed;
+                        break;
+
                     case GameState.ObservingLife:
+                        // Show simulator view with microscope and trash can
+                        SimulatorView.Visibility = Visibility.Visible;
                         MicroscopeView.Visibility = Visibility.Visible;
                         TrashCan.Visibility = Visibility.Visible;
                         StartMicroscopeAnimation();
+                        break;
+
+                    case GameState.PostExperimentTasks:
+                        // Show simulator view to continue experiments
+                        SimulatorView.Visibility = Visibility.Visible;
+                        UpdateChemicalInventory();
+                        MicroscopeView.Visibility = Visibility.Collapsed;
+                        TrashCan.Visibility = Visibility.Collapsed;
+                        break;
+
+                    case GameState.BiohazardAlarm:
+                        // Show simulator view (alarm overlay will appear separately)
+                        SimulatorView.Visibility = Visibility.Visible;
+                        MicroscopeView.Visibility = Visibility.Collapsed;
+                        TrashCan.Visibility = Visibility.Collapsed;
                         break;
 
                     case GameState.VirusOutbreak:

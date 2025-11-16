@@ -648,20 +648,19 @@ namespace BiochemSimulator.Engine
             _knownMolecules.Add(salt);
         }
 
-        public Atom GetAtom(string symbol)
+        public Atom? GetAtom(string symbol)
         {
-            return _atomicTable.ContainsKey(symbol) ? _atomicTable[symbol].Clone() : null!;
+            return _atomicTable.ContainsKey(symbol) ? _atomicTable[symbol].Clone() : null;
         }
 
         public List<Atom> GetBasicAtoms()
         {
-            return new List<Atom>
-            {
-                GetAtom("H"),
-                GetAtom("C"),
-                GetAtom("N"),
-                GetAtom("O")
-            };
+            var basicSymbols = new[] { "H", "C", "N", "O" };
+            return basicSymbols
+                .Select(symbol => GetAtom(symbol))
+                .Where(atom => atom != null)
+                .Select(atom => atom!)
+                .ToList();
         }
 
         public List<Atom> GetAllAtoms()
