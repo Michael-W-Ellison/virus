@@ -97,8 +97,8 @@ namespace BiochemSimulator
                 };
                 _microscopeTimer.Tick += MicroscopeTimer_Tick;
 
-                // Record game start in profile
-                _currentProfile.RecordGameStart();
+                // Show initial view (Introduction state)
+                _gameManager.ChangeState(GameState.Introduction);
             }
             catch (Exception ex)
             {
@@ -109,6 +109,9 @@ namespace BiochemSimulator
 
         private void StartGame_Click(object sender, RoutedEventArgs e)
         {
+            // Record that the player has started a game
+            _currentProfile.RecordGameStart();
+
             _gameManager.StartGame();
             StartButton.Visibility = Visibility.Collapsed;
             UpdateChemicalInventory();
@@ -129,6 +132,13 @@ namespace BiochemSimulator
 
                 switch (state)
                 {
+                    case GameState.Introduction:
+                        // Show the main simulator view with instructions
+                        SimulatorView.Visibility = Visibility.Visible;
+                        UpdateChemicalInventory();
+                        TutorialText.Text = "Welcome to the Biochemistry Simulator! Click 'Start Game' to begin your experiment.";
+                        break;
+
                     case GameState.AtomicChemistry:
                         AtomicWorkspaceView.Visibility = Visibility.Visible;
                         InitializeAtomicWorkspace();
@@ -139,10 +149,35 @@ namespace BiochemSimulator
                         UpdateChemicalInventory();
                         break;
 
+                    case GameState.CreatingLife:
+                        // Show simulator view as we create primitive cells
+                        SimulatorView.Visibility = Visibility.Visible;
+                        UpdateChemicalInventory();
+                        MicroscopeView.Visibility = Visibility.Collapsed;
+                        TrashCan.Visibility = Visibility.Collapsed;
+                        break;
+
                     case GameState.ObservingLife:
+                        // Show simulator view with microscope and trash can
+                        SimulatorView.Visibility = Visibility.Visible;
                         MicroscopeView.Visibility = Visibility.Visible;
                         TrashCan.Visibility = Visibility.Visible;
                         StartMicroscopeAnimation();
+                        break;
+
+                    case GameState.PostExperimentTasks:
+                        // Show simulator view to continue experiments
+                        SimulatorView.Visibility = Visibility.Visible;
+                        UpdateChemicalInventory();
+                        MicroscopeView.Visibility = Visibility.Collapsed;
+                        TrashCan.Visibility = Visibility.Collapsed;
+                        break;
+
+                    case GameState.BiohazardAlarm:
+                        // Show simulator view (alarm overlay will appear separately)
+                        SimulatorView.Visibility = Visibility.Visible;
+                        MicroscopeView.Visibility = Visibility.Collapsed;
+                        TrashCan.Visibility = Visibility.Collapsed;
                         break;
 
                     case GameState.VirusOutbreak:
