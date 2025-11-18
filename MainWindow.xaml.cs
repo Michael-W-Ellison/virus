@@ -19,6 +19,7 @@ namespace BiochemSimulator
         private GameManager _gameManager;
         private DispatcherTimer _gameTimer;
         private DispatcherTimer _microscopeTimer;
+        private DispatcherTimer _autoSaveTimer;
         private Chemical? _selectedWeapon;
         private Dictionary<Point, ChemicalSpray> _activeChemicals;
         private Random _random;
@@ -96,6 +97,14 @@ namespace BiochemSimulator
                     Interval = TimeSpan.FromMilliseconds(100)
                 };
                 _microscopeTimer.Tick += MicroscopeTimer_Tick;
+
+                // Auto-save timer (every 5 minutes)
+                _autoSaveTimer = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMinutes(5)
+                };
+                _autoSaveTimer.Tick += AutoSaveTimer_Tick;
+                _autoSaveTimer.Start();
 
                 // Show initial view (Introduction state)
                 _gameManager.ChangeState(GameState.Introduction);
@@ -204,7 +213,49 @@ namespace BiochemSimulator
             {
                 PhaseText.Text = phase.ToString();
                 UpdateChemicalInventory();
+
+                // Add visual celebration for phase advancement
+                CelebratePhasCompletion(phase);
             });
+        }
+
+        private void CelebratePhasCompletion(ExperimentPhase newPhase)
+        {
+            // Flash the phase text with animation
+            var flashAnimation = new System.Windows.Media.Animation.DoubleAnimation
+            {
+                From = 1.0,
+                To = 0.3,
+                Duration = TimeSpan.FromMilliseconds(300),
+                AutoReverse = true,
+                RepeatBehavior = new System.Windows.Media.Animation.RepeatBehavior(3)
+            };
+
+            PhaseText.BeginAnimation(TextBlock.OpacityProperty, flashAnimation);
+
+            // Scale animation for emphasis
+            var scaleTransform = new ScaleTransform(1.0, 1.0);
+            PhaseText.RenderTransform = scaleTransform;
+            PhaseText.RenderTransformOrigin = new Point(0.5, 0.5);
+
+            var scaleAnimation = new System.Windows.Media.Animation.DoubleAnimation
+            {
+                From = 1.0,
+                To = 1.3,
+                Duration = TimeSpan.FromMilliseconds(400),
+                AutoReverse = true
+            };
+
+            scaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleAnimation);
+            scaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnimation);
+
+            // Show celebration message
+            MessageBox.Show(
+                $"🎉 Phase Complete! 🎉\n\nMoving to: {newPhase}\n\nGreat work!",
+                "Phase Advanced!",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information
+            );
         }
 
         private void OnAlarmTriggered(object? sender, EventArgs e)
@@ -225,6 +276,38 @@ namespace BiochemSimulator
                 UpdateOrganismDisplay();
                 UpdateOrganismStats();
                 UpdateChemicalSprays();
+            }
+        }
+
+        private void AutoSaveTimer_Tick(object? sender, EventArgs e)
+        {
+            try
+            {
+                // Auto-save game progress
+                var gameSave = new GameSave
+                {
+                    SaveName = "AutoSave",
+                    PlayerName = _currentProfile.PlayerName,
+                    SaveDate = DateTime.Now,
+                    PlayTimeSeconds = (int)(DateTime.Now - _sessionStartTime).TotalSeconds,
+                    CurrentState = _gameManager.CurrentState,
+                    CurrentPhase = _gameManager.CurrentPhase
+                };
+
+                _saveManager.SaveGame(gameSave, _currentProfile.PlayerName);
+
+                // Update profile
+                _currentProfile.CurrentSaveFile = gameSave.SaveName;
+                _currentProfile.HasActiveSave = true;
+                _saveManager.SaveProfile(_currentProfile);
+
+                // Optional: Show brief notification
+                // Could add a small toast notification here
+            }
+            catch (Exception ex)
+            {
+                // Silently log error - don't interrupt gameplay
+                System.Diagnostics.Debug.WriteLine($"Auto-save failed: {ex.Message}");
             }
         }
 
@@ -992,8 +1075,19 @@ namespace BiochemSimulator
                     CombineMoleculesButton.IsEnabled = true;
                 }
 
-                AtomicStatusText.Text = $"Created {molecule.Name} ({molecule.Formula})! " +
-                    $"Stability: {molecule.Stability}";
+                // Provide clear guidance based on molecule count
+                if (_createdMolecules.Count == 1)
+                {
+                    AtomicStatusText.Text = $"✓ Created {molecule.Name} ({molecule.Formula})! " +
+                        $"Stability: {molecule.Stability}\n" +
+                        $"➤ Build another molecule, then click 'Combine Molecules' to react them!";
+                }
+                else
+                {
+                    AtomicStatusText.Text = $"✓ Created {molecule.Name} ({molecule.Formula})! " +
+                        $"Stability: {molecule.Stability}\n" +
+                        $"➤ Click 'Combine Molecules' button to react your molecules!";
+                }
 
                 // Check for hazards
                 CheckHazards();
@@ -1045,15 +1139,23 @@ namespace BiochemSimulator
         {
             foreach (var bond in molecule.Bonds)
             {
+                // Determine bond appearance based on type
+                double thickness = bond.Type == BondType.Triple ? 8 : bond.Type == BondType.Double ? 5 : 3;
+                var bondColor = bond.Type == BondType.Triple ? Brushes.Cyan :
+                               bond.Type == BondType.Double ? Brushes.LightGreen :
+                               Brushes.White;
+
                 var line = new Line
                 {
                     X1 = bond.Atom1.Position.X,
                     Y1 = bond.Atom1.Position.Y,
                     X2 = bond.Atom2.Position.X,
                     Y2 = bond.Atom2.Position.Y,
-                    Stroke = Brushes.White,
-                    StrokeThickness = bond.Type == BondType.Double ? 4 : bond.Type == BondType.Triple ? 6 : 2,
-                    Opacity = 0.6
+                    Stroke = bondColor,
+                    StrokeThickness = thickness,
+                    Opacity = 0.9,
+                    StrokeStartLineCap = PenLineCap.Round,
+                    StrokeEndLineCap = PenLineCap.Round
                 };
 
                 AtomicCanvas.Children.Insert(0, line); // Add to back
@@ -1364,6 +1466,205 @@ namespace BiochemSimulator
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
+
+        #region Menu Handlers
+
+        private void SaveGame_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Create a game save object
+                var gameSave = new GameSave
+                {
+                    SaveName = $"Save_{DateTime.Now:yyyyMMdd_HHmmss}",
+                    PlayerName = _currentProfile.PlayerName,
+                    SaveDate = DateTime.Now,
+                    PlayTimeSeconds = (int)(DateTime.Now - _sessionStartTime).TotalSeconds,
+                    CurrentState = _gameManager.CurrentState,
+                    CurrentPhase = _gameManager.CurrentPhase
+                };
+
+                // Save the game
+                _saveManager.SaveGame(gameSave, _currentProfile.PlayerName);
+
+                // Update profile
+                _currentProfile.CurrentSaveFile = gameSave.SaveName;
+                _currentProfile.HasActiveSave = true;
+                _saveManager.SaveProfile(_currentProfile);
+
+                MessageBox.Show($"Game saved successfully!\n\nSave Name: {gameSave.SaveName}",
+                    "Game Saved", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error saving game: {ex.Message}", "Save Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void LoadGame_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Get all saves for current profile
+                var saves = _saveManager.GetSavesForProfile(_currentProfile.PlayerName);
+
+                if (saves.Count == 0)
+                {
+                    MessageBox.Show("No saved games found for this profile.",
+                        "No Saves", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                // Create a simple list dialog
+                var saveNames = saves.Select(s => $"{s.SaveName} - {s.SaveDate:g}").ToList();
+                var selectedSave = ShowSaveSelectionDialog(saveNames);
+
+                if (selectedSave != null)
+                {
+                    var saveToLoad = saves[saveNames.IndexOf(selectedSave)];
+                    var saveFilePath = System.IO.Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                        "BiochemSimulator", "Saves", _currentProfile.PlayerName, $"{saveToLoad.SaveName}.json");
+
+                    var gameSave = _saveManager.LoadGame(saveFilePath);
+
+                    if (gameSave != null)
+                    {
+                        // Restore game state
+                        _gameManager.ChangeState(gameSave.CurrentState);
+
+                        MessageBox.Show($"Game loaded successfully!\n\nLoaded: {gameSave.SaveName}",
+                            "Game Loaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else
+                    {
+                        MessageBox.Show("Failed to load game save.",
+                            "Load Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading game: {ex.Message}", "Load Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private string? ShowSaveSelectionDialog(List<string> saveNames)
+        {
+            // Create a simple selection dialog
+            var dialog = new Window
+            {
+                Title = "Select Save Game",
+                Width = 400,
+                Height = 300,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Owner = this,
+                Background = new SolidColorBrush(Color.FromRgb(28, 40, 51))
+            };
+
+            var listBox = new ListBox
+            {
+                ItemsSource = saveNames,
+                Margin = new Thickness(10),
+                Background = new SolidColorBrush(Color.FromRgb(52, 73, 94)),
+                Foreground = Brushes.White,
+                FontSize = 14
+            };
+
+            var loadButton = new Button
+            {
+                Content = "Load Selected",
+                Margin = new Thickness(10),
+                Padding = new Thickness(10, 5, 10, 5),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Background = new SolidColorBrush(Color.FromRgb(52, 152, 219)),
+                Foreground = Brushes.White,
+                BorderThickness = new Thickness(0),
+                FontSize = 14,
+                Cursor = Cursors.Hand
+            };
+
+            var cancelButton = new Button
+            {
+                Content = "Cancel",
+                Margin = new Thickness(10, 0, 10, 10),
+                Padding = new Thickness(10, 5, 10, 5),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Background = new SolidColorBrush(Color.FromRgb(52, 73, 94)),
+                Foreground = Brushes.White,
+                BorderThickness = new Thickness(0),
+                FontSize = 14,
+                Cursor = Cursors.Hand
+            };
+
+            string? selectedSave = null;
+
+            loadButton.Click += (s, e) =>
+            {
+                if (listBox.SelectedItem != null)
+                {
+                    selectedSave = listBox.SelectedItem.ToString();
+                    dialog.DialogResult = true;
+                    dialog.Close();
+                }
+                else
+                {
+                    MessageBox.Show("Please select a save game first.", "No Selection",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            };
+
+            cancelButton.Click += (s, e) =>
+            {
+                dialog.DialogResult = false;
+                dialog.Close();
+            };
+
+            var panel = new StackPanel();
+            panel.Children.Add(listBox);
+            panel.Children.Add(loadButton);
+            panel.Children.Add(cancelButton);
+
+            dialog.Content = panel;
+            dialog.ShowDialog();
+
+            return selectedSave;
+        }
+
+        private void Exit_Click(object sender, RoutedEventArgs e)
+        {
+            // Confirm exit
+            var result = MessageBox.Show(
+                "Are you sure you want to exit?\n\nYour profile progress will be saved, but unsaved game progress will be lost.",
+                "Confirm Exit",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                SaveProfileOnExit();
+                Application.Current.Shutdown();
+            }
+        }
+
+        private void About_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show(
+                "Biochemistry Simulator\n" +
+                "Version 1.0\n\n" +
+                "An educational game that teaches chemistry and biology through interactive experimentation.\n\n" +
+                "Build molecules, create life, and fight evolving organisms!\n\n" +
+                $"Current Profile: {_currentProfile.PlayerName}\n" +
+                $"Total Play Time: {_currentProfile.TotalPlayTime} minutes\n" +
+                $"Achievements Unlocked: {_currentProfile.UnlockedAchievements.Count}",
+                "About Biochemistry Simulator",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+
+        #endregion
     }
 
     // Helper class for atom visuals

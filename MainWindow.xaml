@@ -34,6 +34,36 @@
         </Style>
     </Window.Resources>
 
+    <DockPanel>
+        <!-- Menu Bar -->
+        <Menu DockPanel.Dock="Top" Background="#34495E" Foreground="White">
+            <MenuItem Header="_File">
+                <MenuItem Header="_Save Game" x:Name="SaveGameMenuItem" Click="SaveGame_Click">
+                    <MenuItem.Icon>
+                        <TextBlock Text="💾" FontSize="14"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="_Load Game" x:Name="LoadGameMenuItem" Click="LoadGame_Click">
+                    <MenuItem.Icon>
+                        <TextBlock Text="📂" FontSize="14"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <Separator/>
+                <MenuItem Header="E_xit" Click="Exit_Click">
+                    <MenuItem.Icon>
+                        <TextBlock Text="🚪" FontSize="14"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+            </MenuItem>
+            <MenuItem Header="_Help">
+                <MenuItem Header="_About" Click="About_Click">
+                    <MenuItem.Icon>
+                        <TextBlock Text="ℹ️" FontSize="14"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+            </MenuItem>
+        </Menu>
+
     <Grid>
         <!-- Atomic Chemistry Workspace -->
         <Grid x:Name="AtomicWorkspaceView" Visibility="Collapsed">
@@ -695,4 +725,5 @@
             </StackPanel>
         </Border>
     </Grid>
+    </DockPanel>
 </Window>
