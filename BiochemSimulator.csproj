@@ -13,4 +13,12 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Exclude test project files from main project build -->
+    <Compile Remove="BiochemSimulator.Tests\**" />
+    <EmbeddedResource Remove="BiochemSimulator.Tests\**" />
+    <None Remove="BiochemSimulator.Tests\**" />
+    <Page Remove="BiochemSimulator.Tests\**" />
+  </ItemGroup>
+
 </Project>
