@@ -224,8 +224,16 @@ namespace BiochemSimulator.Engine
             }
 
             PhaseChanged?.Invoke(this, _currentPhase);
-            ClearBeaker();
-            ClearAtomWorkspace();
+
+            // Delay clearing to let user see their accomplishment (3 seconds)
+            Task.Delay(3000).ContinueWith(_ =>
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    ClearBeaker();
+                    ClearAtomWorkspace();
+                });
+            });
         }
 
         public void DisposeOrganismsInTrash()
