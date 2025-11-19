@@ -1070,6 +1070,22 @@ namespace BiochemSimulator
                 // Draw bonds
                 DrawMoleculeBonds(molecule);
 
+                // IMPORTANT: Clear the workspace after building the molecule
+                // This prevents the next molecule from including these atoms
+                _gameManager.ClearAtomWorkspace();
+
+                // Clear atom visuals but keep bond visuals
+                foreach (var atomVisual in _atomVisuals.ToList())
+                {
+                    AtomicCanvas.Children.Remove(atomVisual.Ellipse);
+                    AtomicCanvas.Children.Remove(atomVisual.Text);
+                }
+                _atomVisuals.Clear();
+
+                // Update workspace display
+                WorkspaceAtomsList.ItemsSource = null;
+                WorkspaceInstructions.Visibility = Visibility.Visible;
+
                 // Enable combine button
                 if (_createdMolecules.Count >= 2)
                 {
@@ -1721,32 +1737,66 @@ namespace BiochemSimulator
 
                 if (selectedSave != null)
                 {
-                    var saveToLoad = saves[saveNames.IndexOf(selectedSave)];
+                    var saveIndex = saveNames.IndexOf(selectedSave);
+                    if (saveIndex < 0 || saveIndex >= saves.Count)
+                    {
+                        MessageBox.Show("Error selecting save game.", "Selection Error",
+                            MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    var saveToLoad = saves[saveIndex];
                     var saveFilePath = System.IO.Path.Combine(
                         Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
                         "BiochemSimulator", "Saves", _currentProfile.PlayerName, $"{saveToLoad.SaveName}.json");
+
+                    System.Diagnostics.Debug.WriteLine($"Loading game from: {saveFilePath}");
+
+                    if (!System.IO.File.Exists(saveFilePath))
+                    {
+                        MessageBox.Show($"Save file not found:\n{saveFilePath}\n\nThe save may have been deleted.",
+                            "File Not Found", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
 
                     var gameSave = _saveManager.LoadGame(saveFilePath);
 
                     if (gameSave != null)
                     {
-                        // Restore game state
+                        // Restore game state and phase
                         _gameManager.ChangeState(gameSave.CurrentState);
 
-                        MessageBox.Show($"Game loaded successfully!\n\nLoaded: {gameSave.SaveName}",
-                            "Game Loaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                        // Note: Full state restoration (atoms, molecules, organisms) would require
+                        // implementing serialization for those complex objects. For now, we just
+                        // restore the game state and phase.
+
+                        MessageBox.Show(
+                            $"Game loaded successfully!\n\n" +
+                            $"Save: {gameSave.SaveName}\n" +
+                            $"State: {gameSave.CurrentState}\n" +
+                            $"Phase: {gameSave.CurrentPhase}\n\n" +
+                            $"Note: Full workspace restoration coming soon!",
+                            "Game Loaded",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Information);
                     }
                     else
                     {
-                        MessageBox.Show("Failed to load game save.",
-                            "Load Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(
+                            "Failed to load game save.\n\nThe save file may be corrupted or from an incompatible version.",
+                            "Load Error",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Error);
                     }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error loading game: {ex.Message}", "Load Error",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(
+                    $"Error loading game:\n\n{ex.Message}\n\nDetails:\n{ex.StackTrace}",
+                    "Load Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
             }
         }
 
