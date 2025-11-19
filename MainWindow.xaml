@@ -20,8 +20,11 @@
                     <ControlTemplate TargetType="Button">
                         <Border Background="{TemplateBinding Background}"
                                 CornerRadius="5"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                Padding="{TemplateBinding Padding}"
+                                TextElement.Foreground="{TemplateBinding Foreground}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            TextElement.Foreground="White"/>
                         </Border>
                     </ControlTemplate>
                 </Setter.Value>
@@ -212,7 +215,7 @@
                                                           FontSize="14"
                                                           Margin="0,0,5,0"/>
                                                 <TextBlock Text="{Binding Name}"
-                                                          Foreground="#95A5A6"
+                                                          Foreground="#D5DBDB"
                                                           FontSize="11"
                                                           VerticalAlignment="Center"/>
                                             </StackPanel>

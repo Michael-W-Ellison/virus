@@ -851,12 +851,13 @@ namespace BiochemSimulator
                 Height = 40,
                 Fill = new RadialGradientBrush(
                     atom.Color,
-                    Color.FromArgb(150, atom.Color.R, atom.Color.G, atom.Color.B)
+                    Color.FromArgb(255, atom.Color.R, atom.Color.G, atom.Color.B) // Fully opaque
                 ),
                 Stroke = Brushes.White,
-                StrokeThickness = 2,
+                StrokeThickness = 3, // Thicker stroke for better visibility
                 Tag = atom,
-                ToolTip = CreateAtomTooltip(atom)
+                ToolTip = CreateAtomTooltip(atom),
+                Opacity = 1.0 // Ensure full opacity
             };
 
             // Add radiation glow effect for radioactive atoms
@@ -1175,7 +1176,47 @@ namespace BiochemSimulator
             var mol1 = _createdMolecules[_createdMolecules.Count - 2];
             var mol2 = _createdMolecules[_createdMolecules.Count - 1];
 
-            _gameManager.TryMolecularReaction(mol1, mol2);
+            // Try the reaction
+            var result = _gameManager.Atomic.TryReact(mol1, mol2);
+
+            if (result.Success)
+            {
+                // Reaction occurred - trigger event for visual effects
+                _gameManager.TryMolecularReaction(mol1, mol2);
+
+                // Clear the workspace after successful reaction
+                _createdMolecules.Clear();
+                AtomicCanvas.Children.Clear();
+                _atomVisuals.Clear();
+                _gameManager.ClearAtomWorkspace();
+                CombineMoleculesButton.IsEnabled = false;
+
+                AtomicStatusText.Text = $"Reaction successful! {result.Description}\n➤ Continue building molecules or advance to next phase.";
+            }
+            else
+            {
+                // No reaction - provide helpful feedback
+                MessageBox.Show(
+                    $"These molecules ({mol1.Name} + {mol2.Name}) don't react with each other.\n\n" +
+                    $"Try building different molecules!\n\n" +
+                    $"Hint for current phase ({_gameManager.CurrentPhase}):\n" +
+                    GetPhaseHint(),
+                    "No Reaction",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+
+                AtomicStatusText.Text = $"No reaction between {mol1.Name} and {mol2.Name}. Try different molecules!";
+            }
+        }
+
+        private string GetPhaseHint()
+        {
+            return _gameManager.CurrentPhase switch
+            {
+                ExperimentPhase.SimpleMolecules => "Build H2 (Hydrogen gas) and O2 (Oxygen gas), then combine them to make water!",
+                ExperimentPhase.ComplexMolecules => "Try building methane (CH4) or carbon dioxide (CO2).",
+                _ => "Follow the tutorial instructions for this phase."
+            };
         }
 
         private void OnAtomicReactionOccurred(object? sender, MoleculeReactionResult result)
