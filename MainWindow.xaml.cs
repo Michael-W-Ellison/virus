@@ -1514,10 +1514,19 @@ namespace BiochemSimulator
         {
             try
             {
+                // Prompt user for save name
+                var saveName = ShowSaveNameDialog();
+
+                if (string.IsNullOrWhiteSpace(saveName))
+                {
+                    // User cancelled or didn't enter a name
+                    return;
+                }
+
                 // Create a game save object
                 var gameSave = new GameSave
                 {
-                    SaveName = $"Save_{DateTime.Now:yyyyMMdd_HHmmss}",
+                    SaveName = saveName,
                     PlayerName = _currentProfile.PlayerName,
                     SaveDate = DateTime.Now,
                     PlayTimeSeconds = (int)(DateTime.Now - _sessionStartTime).TotalSeconds,
@@ -1541,6 +1550,155 @@ namespace BiochemSimulator
                 MessageBox.Show($"Error saving game: {ex.Message}", "Save Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private string? ShowSaveNameDialog()
+        {
+            // Create a dialog for entering save name
+            var dialog = new Window
+            {
+                Title = "Save Game",
+                Width = 400,
+                Height = 200,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Owner = this,
+                Background = new SolidColorBrush(Color.FromRgb(28, 40, 51)),
+                ResizeMode = ResizeMode.NoResize
+            };
+
+            var mainPanel = new StackPanel { Margin = new Thickness(20) };
+
+            // Instructions
+            var instructionText = new TextBlock
+            {
+                Text = "Enter a name for your save game:",
+                Foreground = Brushes.White,
+                FontSize = 14,
+                Margin = new Thickness(0, 0, 0, 10)
+            };
+
+            // Text input
+            var nameInput = new TextBox
+            {
+                FontSize = 14,
+                Padding = new Thickness(8),
+                Background = new SolidColorBrush(Color.FromRgb(52, 73, 94)),
+                Foreground = Brushes.White,
+                BorderThickness = new Thickness(0),
+                Text = $"My Save {DateTime.Now:yyyy-MM-dd HH:mm}", // Default name with timestamp
+                SelectionStart = 0,
+                SelectionLength = 100 // Select all text for easy replacement
+            };
+
+            // Character hint
+            var hintText = new TextBlock
+            {
+                Text = "Allowed: letters, numbers, spaces, dashes, underscores",
+                Foreground = new SolidColorBrush(Color.FromRgb(189, 195, 199)),
+                FontSize = 11,
+                Margin = new Thickness(0, 5, 0, 15)
+            };
+
+            // Buttons panel
+            var buttonPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, 10, 0, 0)
+            };
+
+            var saveButton = new Button
+            {
+                Content = "Save",
+                Width = 100,
+                Margin = new Thickness(5),
+                Padding = new Thickness(10, 5, 10, 5),
+                Background = new SolidColorBrush(Color.FromRgb(46, 204, 113)),
+                Foreground = Brushes.White,
+                BorderThickness = new Thickness(0),
+                FontSize = 14,
+                Cursor = Cursors.Hand
+            };
+
+            var cancelButton = new Button
+            {
+                Content = "Cancel",
+                Width = 100,
+                Margin = new Thickness(5),
+                Padding = new Thickness(10, 5, 10, 5),
+                Background = new SolidColorBrush(Color.FromRgb(52, 73, 94)),
+                Foreground = Brushes.White,
+                BorderThickness = new Thickness(0),
+                FontSize = 14,
+                Cursor = Cursors.Hand
+            };
+
+            string? result = null;
+
+            saveButton.Click += (s, e) =>
+            {
+                var name = nameInput.Text.Trim();
+
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    MessageBox.Show("Please enter a save name.", "Invalid Name",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                // Validate characters (allow letters, numbers, spaces, dashes, underscores)
+                if (!System.Text.RegularExpressions.Regex.IsMatch(name, @"^[a-zA-Z0-9\s\-_]+$"))
+                {
+                    MessageBox.Show("Save name contains invalid characters.\n\nAllowed: letters, numbers, spaces, dashes (-), underscores (_)",
+                        "Invalid Characters",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                if (name.Length > 50)
+                {
+                    MessageBox.Show("Save name is too long. Maximum 50 characters.",
+                        "Name Too Long",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                result = name;
+                dialog.DialogResult = true;
+                dialog.Close();
+            };
+
+            cancelButton.Click += (s, e) =>
+            {
+                dialog.DialogResult = false;
+                dialog.Close();
+            };
+
+            // Handle Enter key in textbox
+            nameInput.KeyDown += (s, e) =>
+            {
+                if (e.Key == Key.Enter)
+                {
+                    saveButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                }
+            };
+
+            buttonPanel.Children.Add(saveButton);
+            buttonPanel.Children.Add(cancelButton);
+
+            mainPanel.Children.Add(instructionText);
+            mainPanel.Children.Add(nameInput);
+            mainPanel.Children.Add(hintText);
+            mainPanel.Children.Add(buttonPanel);
+
+            dialog.Content = mainPanel;
+
+            // Focus the text input when dialog opens
+            dialog.Loaded += (s, e) => nameInput.Focus();
+
+            dialog.ShowDialog();
+
+            return result;
         }
 
         private void LoadGame_Click(object sender, RoutedEventArgs e)
