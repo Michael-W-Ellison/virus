@@ -305,8 +305,8 @@ namespace BiochemSimulator.ViewModels
 
         private void CheckHazards()
         {
-            var atoms = WorkspaceAtoms.ToList();
-            var hazard = _gameManager.Atomic.AnalyzeHazards(atoms);
+            var molecules = CreatedMolecules.ToList();
+            var hazard = _gameManager.Atomic.AnalyzeHazard(molecules);
 
             HazardWarnings.Clear();
 
