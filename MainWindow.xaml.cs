@@ -824,10 +824,14 @@ namespace BiochemSimulator
 
         private void AtomicCanvas_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (_selectedAtom != null && e.LeftButton == MouseButtonState.Pressed)
-            {
-                Point position = e.GetPosition(AtomicCanvas);
+            if (e.LeftButton != MouseButtonState.Pressed)
+                return;
 
+            Point position = e.GetPosition(AtomicCanvas);
+
+            // If an atom is selected from palette, place it
+            if (_selectedAtom != null)
+            {
                 // Create a new atom instance
                 var atom = _selectedAtom.Clone();
                 atom.Position = position;
@@ -861,6 +865,34 @@ namespace BiochemSimulator
 
                 AtomicStatusText.Text = $"Placed {atom.Name}. Select more atoms or build molecule.";
             }
+            else
+            {
+                // No atom selected - check if clicking on an existing atom to drag it
+                var clickedAtom = FindAtomAtPosition(position);
+                if (clickedAtom != null)
+                {
+                    StartAtomDrag(clickedAtom, position);
+                }
+            }
+        }
+
+        private Atom? FindAtomAtPosition(Point position)
+        {
+            // Check each atom visual to see if click is within its bounds
+            foreach (var atomVisual in _atomVisuals)
+            {
+                double left = Canvas.GetLeft(atomVisual.Ellipse);
+                double top = Canvas.GetTop(atomVisual.Ellipse);
+                double right = left + atomVisual.Ellipse.Width;
+                double bottom = top + atomVisual.Ellipse.Height;
+
+                if (position.X >= left && position.X <= right &&
+                    position.Y >= top && position.Y <= bottom)
+                {
+                    return atomVisual.Atom;
+                }
+            }
+            return null;
         }
 
         private void CreateAtomVisual(Atom atom)
@@ -1040,12 +1072,47 @@ namespace BiochemSimulator
 
         private void AtomicCanvas_MouseMove(object sender, MouseEventArgs e)
         {
-            // For future: dragging atoms
+            if (_isDragging && _draggingAtom != null && e.LeftButton == MouseButtonState.Pressed)
+            {
+                Point currentPosition = e.GetPosition(AtomicCanvas);
+
+                // Find the visual for the dragged atom
+                var atomVisual = _atomVisuals.FirstOrDefault(av => av.Atom == _draggingAtom);
+                if (atomVisual != null)
+                {
+                    // Update visual position
+                    Canvas.SetLeft(atomVisual.Ellipse, currentPosition.X - 20);
+                    Canvas.SetTop(atomVisual.Ellipse, currentPosition.Y - 20);
+                    Canvas.SetLeft(atomVisual.Text, currentPosition.X - 10);
+                    Canvas.SetTop(atomVisual.Text, currentPosition.Y - 8);
+
+                    // Update atom position in model
+                    _draggingAtom.Position = currentPosition;
+                }
+            }
         }
 
         private void AtomicCanvas_MouseUp(object sender, MouseButtonEventArgs e)
         {
-            // For future: complete dragging
+            if (_isDragging && _draggingAtom != null)
+            {
+                // Complete the drag operation
+                _isDragging = false;
+                _draggingAtom = null;
+
+                // Re-check hazards after repositioning
+                CheckHazards();
+
+                AtomicStatusText.Text = "Atom repositioned. Select more atoms or build molecule.";
+            }
+        }
+
+        private void StartAtomDrag(Atom atom, Point startPoint)
+        {
+            _draggingAtom = atom;
+            _dragStartPoint = startPoint;
+            _isDragging = true;
+            AtomicStatusText.Text = $"Dragging {atom.Name}...";
         }
 
         private void BuildMolecule_Click(object sender, RoutedEventArgs e)
@@ -1968,7 +2035,7 @@ namespace BiochemSimulator
             // Refresh beaker contents
             BeakerContents.ItemsSource = null;
             BeakerContents.ItemsSource = _gameManager.CurrentBeaker;
-            UpdateBeakerVisuals();
+            UpdateBeakerDisplay();
 
             // Refresh chemical inventory based on current state
             var chemicals = _gameManager.GetAvailableChemicalsForCurrentPhase();

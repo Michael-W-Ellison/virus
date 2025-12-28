@@ -87,7 +87,7 @@ namespace BiochemSimulator.ViewModels
     }
 
     /// <summary>
-    /// An async command implementation
+    /// An async command implementation with proper exception handling
     /// </summary>
     public class AsyncRelayCommand : ICommand
     {
@@ -100,6 +100,11 @@ namespace BiochemSimulator.ViewModels
             add => CommandManager.RequerySuggested += value;
             remove => CommandManager.RequerySuggested -= value;
         }
+
+        /// <summary>
+        /// Raised when an exception occurs during async execution
+        /// </summary>
+        public event EventHandler<Exception>? ExecutionFailed;
 
         public bool IsExecuting
         {
@@ -127,7 +132,25 @@ namespace BiochemSimulator.ViewModels
             return !_isExecuting && (_canExecute == null || _canExecute(parameter));
         }
 
+        /// <summary>
+        /// ICommand.Execute implementation - wraps ExecuteAsync with exception handling
+        /// </summary>
         public async void Execute(object? parameter)
+        {
+            try
+            {
+                await ExecuteAsync(parameter);
+            }
+            catch (Exception ex)
+            {
+                ExecutionFailed?.Invoke(this, ex);
+            }
+        }
+
+        /// <summary>
+        /// Executes the command asynchronously with proper Task return for await support
+        /// </summary>
+        public async System.Threading.Tasks.Task ExecuteAsync(object? parameter)
         {
             if (!CanExecute(parameter))
                 return;
