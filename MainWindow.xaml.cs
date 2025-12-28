@@ -1,5 +1,6 @@
 using BiochemSimulator.Engine;
 using BiochemSimulator.Models;
+using BiochemSimulator.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,6 +17,9 @@ namespace BiochemSimulator
 {
     public partial class MainWindow : Window
     {
+        // ViewModel for MVVM pattern (gradual migration)
+        private MainWindowViewModel? _viewModel;
+
         private GameManager _gameManager;
         private DispatcherTimer _gameTimer;
         private DispatcherTimer _microscopeTimer;
@@ -79,6 +83,14 @@ namespace BiochemSimulator
                 double screenWidth = SystemParameters.PrimaryScreenWidth;
                 double screenHeight = SystemParameters.PrimaryScreenHeight;
 
+                // Initialize ViewModel for MVVM pattern (gradual migration)
+                _viewModel = new MainWindowViewModel(_currentProfile, screenWidth, screenHeight);
+                _viewModel.MessageRequested += OnViewModelMessageRequested;
+                _viewModel.SaveNameRequested += OnSaveNameRequested;
+                _viewModel.SaveSelectionRequested += OnSaveSelectionRequested;
+                DataContext = _viewModel;
+
+                // Legacy initialization (being migrated to ViewModel)
                 _gameManager = new GameManager(screenWidth, screenHeight);
                 _gameManager.StateChanged += OnStateChanged;
                 _gameManager.PhaseChanged += OnPhaseChanged;
@@ -1991,6 +2003,25 @@ namespace BiochemSimulator
                     AtomicStatusText.Text = "Game loaded.";
                     break;
             }
+        }
+
+        #endregion
+
+        #region ViewModel Event Handlers
+
+        private void OnViewModelMessageRequested(string title, string message)
+        {
+            MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private string? OnSaveNameRequested(string prompt)
+        {
+            return ShowSaveNameDialog();
+        }
+
+        private string? OnSaveSelectionRequested(System.Collections.Generic.List<string> saveNames)
+        {
+            return ShowSaveSelectionDialog(saveNames);
         }
 
         #endregion
