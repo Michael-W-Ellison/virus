@@ -162,6 +162,12 @@ namespace BiochemSimulator.Engine
         {
             switch (phase)
             {
+                // Atomic phases use AtomicEngine for atoms, not chemicals
+                case ExperimentPhase.SimpleMolecules:
+                case ExperimentPhase.ComplexMolecules:
+                    return new List<Chemical>();
+
+                // Biochemistry phases use chemicals
                 case ExperimentPhase.AminoAcids:
                     return new List<Chemical>
                     {
@@ -200,6 +206,11 @@ namespace BiochemSimulator.Engine
                         _chemicals["Phospholipid"],
                         _chemicals["Cholesterol"]
                     };
+
+                // Life creation phase - no new chemicals, components are assembling
+                case ExperimentPhase.PrimitiveCell:
+                    return new List<Chemical>();
+
                 default:
                     return new List<Chemical>();
             }
