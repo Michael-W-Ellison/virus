@@ -23,6 +23,10 @@ namespace BiochemSimulator.Models
         public int RadioactiveElementsUsed { get; set; }
         public int HighestGeneration { get; set; } // Highest organism generation survived
 
+        // Resistance Tracking
+        public int ResistanceEncounters { get; set; }
+        public double HighestResistanceLevel { get; set; }
+
         // Discovery Tracking
         public HashSet<string> DiscoveredAtoms { get; set; } = new HashSet<string>();
         public HashSet<string> DiscoveredMolecules { get; set; } = new HashSet<string>();
@@ -63,6 +67,11 @@ namespace BiochemSimulator.Models
             UpdateLastPlayed();
         }
 
+        public void RecordGameWon()
+        {
+            GamesWon++;
+        }
+
         public void RecordGameWon(int timeTaken, int organismsDefeated)
         {
             GamesWon++;
@@ -79,6 +88,11 @@ namespace BiochemSimulator.Models
             }
         }
 
+        public void RecordGameLost()
+        {
+            GamesLost++;
+        }
+
         public void RecordGameLost(int survivalTime, int organismsDefeated)
         {
             GamesLost++;
@@ -87,6 +101,15 @@ namespace BiochemSimulator.Models
             if (survivalTime > LongestSurvivalTime)
             {
                 LongestSurvivalTime = survivalTime;
+            }
+        }
+
+        public void RecordResistanceEncounter(double resistanceLevel)
+        {
+            ResistanceEncounters++;
+            if (resistanceLevel > HighestResistanceLevel)
+            {
+                HighestResistanceLevel = resistanceLevel;
             }
         }
 

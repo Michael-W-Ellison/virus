@@ -86,6 +86,12 @@ namespace BiochemSimulator.Models
                     "Win without losing any desktop icons", 100, AchievementCategory.Combat, "👑", true),
                 new Achievement("resistance_master", "Evolution Expert",
                     "Defeat organisms that developed resistance 3+ times", 60, AchievementCategory.Combat, "🧪"),
+                new Achievement("first_resistance", "First Contact",
+                    "Encounter organisms that developed chemical resistance", 20, AchievementCategory.Combat, "🦠"),
+                new Achievement("resistance_expert", "Resistance Fighter",
+                    "Encounter 10 instances of chemical resistance", 40, AchievementCategory.Combat, "💪"),
+                new Achievement("super_resistance", "Unstoppable Force",
+                    "Face organisms with 80%+ chemical resistance", 75, AchievementCategory.Combat, "🛡️", true),
 
                 // Discovery Achievements
                 new Achievement("discover_5_atoms", "Beginner Chemist",

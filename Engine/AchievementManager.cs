@@ -198,8 +198,21 @@ namespace BiochemSimulator.Engine
 
         private void CheckResistanceAchievements()
         {
-            // This would need to track resistance encounters
-            // For now, we'll assume the game manager tracks this
+            // Track resistance encounters based on profile data
+            if (_profile.ResistanceEncounters >= 1)
+            {
+                UnlockAchievement("first_resistance");
+            }
+
+            if (_profile.ResistanceEncounters >= 10)
+            {
+                UnlockAchievement("resistance_expert");
+            }
+
+            if (_profile.HighestResistanceLevel >= 0.8)
+            {
+                UnlockAchievement("super_resistance");
+            }
         }
 
         private void CheckPlayTimeAchievements()

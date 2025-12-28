@@ -183,6 +183,9 @@ namespace BiochemSimulator
                         UpdateChemicalInventory();
                         MicroscopeView.Visibility = Visibility.Collapsed;
                         TrashCan.Visibility = Visibility.Collapsed;
+
+                        // Track life creation achievement
+                        _achievementManager.CheckAchievements(GameEvent.LifeCreated);
                         break;
 
                     case GameState.ObservingLife:
@@ -467,6 +470,9 @@ namespace BiochemSimulator
             _gameManager.DisposeOrganismsInTrash();
             MicroscopeView.Visibility = Visibility.Collapsed;
             TrashCan.Visibility = Visibility.Collapsed;
+
+            // Track trash disposal achievement
+            _achievementManager.CheckAchievements(GameEvent.TrashDisposal);
         }
 
         private void UpdateOrganismDisplay()
@@ -564,7 +570,29 @@ namespace BiochemSimulator
                 Point location = e.GetPosition(DesktopOverlay);
                 double radius = 80;
 
+                // Track organism count before applying chemical
+                int organismsBeforeAttack = _gameManager.Organisms.GetAliveCount();
+
                 _gameManager.ApplyChemicalToDesktop(_selectedWeapon, location, radius);
+
+                // Track organisms defeated
+                int organismsAfterAttack = _gameManager.Organisms.GetAliveCount();
+                int organismsDefeated = organismsBeforeAttack - organismsAfterAttack;
+
+                if (organismsDefeated > 0)
+                {
+                    _currentProfile.TotalOrganismsDefeated += organismsDefeated;
+                    _achievementManager.CheckAchievements(GameEvent.OrganismDefeated);
+                }
+
+                // Check for resistance development based on survivors
+                var resistances = _gameManager.Organisms.GetResistanceStats();
+                var maxResistance = resistances.Any() ? resistances.Values.Max() : 0.0;
+                if (maxResistance > 0.3)
+                {
+                    _currentProfile.RecordResistanceEncounter(maxResistance);
+                    _achievementManager.CheckAchievements(GameEvent.ResistanceDeveloped);
+                }
 
                 // Add visual spray effect
                 var spray = new ChemicalSpray
@@ -725,6 +753,24 @@ namespace BiochemSimulator
 
         private void ShowVictoryScreen()
         {
+            // Calculate victory data
+            int timeTaken = (int)(DateTime.Now - _sessionStartTime).TotalSeconds;
+            int organismsDefeated = _currentProfile.TotalOrganismsDefeated;
+
+            // Track victory with detailed statistics
+            _currentProfile.RecordGameWon(timeTaken, organismsDefeated);
+
+            // Create VictoryData for achievement checking
+            var victoryData = new VictoryData
+            {
+                TimeTaken = timeTaken,
+                IconsLost = 0, // Desktop icons aren't tracked in this implementation
+                WasAfter3Losses = _currentProfile.GamesLost >= 3 && _currentProfile.GamesWon == 1
+            };
+
+            _achievementManager.CheckAchievements(GameEvent.GameWon, victoryData);
+            _achievementManager.CheckAchievements(GameEvent.OutbreakSurvived);
+
             MessageBox.Show(
                 $"🎉 VICTORY! 🎉\n\n" +
                 $"You've successfully eradicated the biohazard!\n\n" +
@@ -740,6 +786,14 @@ namespace BiochemSimulator
 
         private void ShowGameOverScreen()
         {
+            // Calculate survival data
+            int survivalTime = (int)(DateTime.Now - _sessionStartTime).TotalSeconds;
+            int organismsDefeated = _currentProfile.TotalOrganismsDefeated;
+
+            // Track game over with detailed statistics
+            _currentProfile.RecordGameLost(survivalTime, organismsDefeated);
+            _achievementManager.CheckAchievements(GameEvent.GameLost);
+
             MessageBox.Show(
                 $"💀 GAME OVER 💀\n\n" +
                 $"The organisms have overwhelmed your system!\n\n" +

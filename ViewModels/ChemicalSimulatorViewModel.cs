@@ -123,6 +123,14 @@ namespace BiochemSimulator.ViewModels
             UpdateBeakerContentText();
 
             ChemicalAdded?.Invoke(this, chemical);
+
+            // Check for chemical reactions
+            var reaction = _gameManager.Chemistry.TryReact(_gameManager.CurrentBeaker);
+            if (reaction != null)
+            {
+                ReactionOccurred?.Invoke(this, reaction);
+                StatusText = $"Reaction: {reaction.Description}";
+            }
         }
 
         private void OnClearBeaker()
