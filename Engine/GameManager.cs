@@ -351,5 +351,219 @@ namespace BiochemSimulator.Engine
         {
             _organismManager.SetScreenSize(width, height);
         }
+
+        #region Workspace Serialization
+
+        /// <summary>
+        /// Creates a GameSave object capturing the complete current workspace state
+        /// </summary>
+        public GameSave CreateGameSave(string saveName, string playerName, int playTimeSeconds)
+        {
+            var gameSave = new GameSave
+            {
+                SaveName = saveName,
+                PlayerName = playerName,
+                SaveDate = DateTime.Now,
+                PlayTimeSeconds = playTimeSeconds,
+                CurrentState = _currentState,
+                CurrentPhase = _currentPhase,
+                TotalOrganismsCreated = _organismManager.TotalOrganismsCreated,
+                GenerationsEvolved = _organismManager.GenerationsEvolved
+            };
+
+            // Serialize workspace atoms
+            int atomId = 0;
+            var atomIdMap = new Dictionary<Atom, int>();
+            foreach (var atom in _currentAtomWorkspace)
+            {
+                atomIdMap[atom] = atomId;
+                gameSave.WorkspaceAtoms.Add(new SerializableAtom
+                {
+                    Id = atomId++,
+                    Symbol = atom.Symbol,
+                    PositionX = atom.Position.X,
+                    PositionY = atom.Position.Y,
+                    CurrentBonds = atom.Bonds.Count
+                });
+            }
+
+            // Serialize molecules with their atoms and bonds
+            foreach (var molecule in _currentMolecules)
+            {
+                var serMolecule = new SerializableMolecule
+                {
+                    Id = molecule.Id.ToString(),
+                    Name = molecule.Name,
+                    Formula = molecule.Formula,
+                    CenterX = molecule.CenterOfMass.X,
+                    CenterY = molecule.CenterOfMass.Y,
+                    Stability = (int)molecule.Stability,
+                    IsExplosive = molecule.IsExplosive,
+                    IsFlammable = molecule.IsFlammable,
+                    IsToxic = molecule.IsToxic
+                };
+
+                // Serialize atoms within molecule with local IDs
+                int molAtomId = 0;
+                var molAtomIdMap = new Dictionary<Atom, int>();
+                foreach (var atom in molecule.Atoms)
+                {
+                    molAtomIdMap[atom] = molAtomId;
+                    serMolecule.Atoms.Add(new SerializableAtom
+                    {
+                        Id = molAtomId++,
+                        Symbol = atom.Symbol,
+                        PositionX = atom.Position.X,
+                        PositionY = atom.Position.Y,
+                        CurrentBonds = atom.Bonds.Count
+                    });
+                }
+
+                // Serialize bonds (avoiding duplicates)
+                var processedBonds = new HashSet<Bond>();
+                foreach (var atom in molecule.Atoms)
+                {
+                    foreach (var bond in atom.Bonds)
+                    {
+                        if (!processedBonds.Contains(bond) &&
+                            molAtomIdMap.ContainsKey(bond.Atom1) &&
+                            molAtomIdMap.ContainsKey(bond.Atom2))
+                        {
+                            serMolecule.Bonds.Add(new SerializableBond
+                            {
+                                Atom1Id = molAtomIdMap[bond.Atom1],
+                                Atom2Id = molAtomIdMap[bond.Atom2],
+                                Type = bond.Type,
+                                BondEnergy = bond.BondEnergy,
+                                BondLength = bond.BondLength
+                            });
+                            processedBonds.Add(bond);
+                        }
+                    }
+                }
+
+                gameSave.WorkspaceMolecules.Add(serMolecule);
+            }
+
+            // Serialize beaker contents
+            foreach (var chemical in _currentBeaker)
+            {
+                gameSave.BeakerChemicals.Add(chemical.Name);
+            }
+
+            // Serialize organisms
+            foreach (var organism in _organismManager.Organisms.Where(o => o.IsAlive))
+            {
+                gameSave.ActiveOrganisms.Add(new SerializableOrganism
+                {
+                    Id = organism.Id.ToString(),
+                    PositionX = organism.Position.X,
+                    PositionY = organism.Position.Y,
+                    Health = organism.Health,
+                    Size = organism.Size,
+                    Generation = organism.Generation,
+                    ColorR = organism.Color.R,
+                    ColorG = organism.Color.G,
+                    ColorB = organism.Color.B,
+                    ReproductionRate = organism.ReproductionRate,
+                    MutationRate = organism.MutationRate,
+                    Type = (int)organism.Type,
+                    Resistances = new Dictionary<string, double>(organism.Resistances)
+                });
+            }
+
+            return gameSave;
+        }
+
+        /// <summary>
+        /// Restores workspace state from a GameSave object
+        /// </summary>
+        public void RestoreFromGameSave(GameSave gameSave)
+        {
+            // Restore game state and phase
+            _currentState = gameSave.CurrentState;
+            _currentPhase = gameSave.CurrentPhase;
+
+            // Clear current workspace
+            _currentAtomWorkspace.Clear();
+            _currentMolecules.Clear();
+            _currentBeaker.Clear();
+
+            // Restore workspace atoms
+            foreach (var serAtom in gameSave.WorkspaceAtoms)
+            {
+                var atom = _atomicEngine.GetAtom(serAtom.Symbol);
+                if (atom != null)
+                {
+                    atom.Position = new Point(serAtom.PositionX, serAtom.PositionY);
+                    _currentAtomWorkspace.Add(atom);
+                }
+            }
+
+            // Restore molecules
+            foreach (var serMolecule in gameSave.WorkspaceMolecules)
+            {
+                var molecule = new Molecule
+                {
+                    Id = Guid.TryParse(serMolecule.Id, out var id) ? id : Guid.NewGuid(),
+                    Name = serMolecule.Name,
+                    Formula = serMolecule.Formula,
+                    CenterOfMass = new Point(serMolecule.CenterX, serMolecule.CenterY),
+                    Stability = (MoleculeStability)serMolecule.Stability,
+                    IsExplosive = serMolecule.IsExplosive,
+                    IsFlammable = serMolecule.IsFlammable,
+                    IsToxic = serMolecule.IsToxic
+                };
+
+                // Restore atoms in molecule
+                var atomsById = new Dictionary<int, Atom>();
+                foreach (var serAtom in serMolecule.Atoms)
+                {
+                    var atom = _atomicEngine.GetAtom(serAtom.Symbol);
+                    if (atom != null)
+                    {
+                        atom.Position = new Point(serAtom.PositionX, serAtom.PositionY);
+                        molecule.Atoms.Add(atom);
+                        atomsById[serAtom.Id] = atom;
+                    }
+                }
+
+                // Restore bonds
+                foreach (var serBond in serMolecule.Bonds)
+                {
+                    if (atomsById.TryGetValue(serBond.Atom1Id, out var atom1) &&
+                        atomsById.TryGetValue(serBond.Atom2Id, out var atom2))
+                    {
+                        var bond = new Bond(atom1, atom2, serBond.Type, serBond.BondEnergy, serBond.BondLength);
+                        molecule.Bonds.Add(bond);
+                        atom1.Bonds.Add(bond);
+                        atom2.Bonds.Add(bond);
+                    }
+                }
+
+                _currentMolecules.Add(molecule);
+            }
+
+            // Restore beaker contents
+            foreach (var chemicalName in gameSave.BeakerChemicals)
+            {
+                var chemical = _chemistryEngine.GetChemical(chemicalName);
+                if (chemical != null)
+                {
+                    _currentBeaker.Add(chemical);
+                }
+            }
+
+            // Restore organisms
+            _organismManager.RestoreOrganisms(gameSave.ActiveOrganisms,
+                gameSave.TotalOrganismsCreated,
+                gameSave.GenerationsEvolved);
+
+            // Notify listeners
+            StateChanged?.Invoke(this, _currentState);
+            PhaseChanged?.Invoke(this, _currentPhase);
+        }
+
+        #endregion
     }
 }

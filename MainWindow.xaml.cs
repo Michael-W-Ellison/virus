@@ -283,16 +283,9 @@ namespace BiochemSimulator
         {
             try
             {
-                // Auto-save game progress
-                var gameSave = new GameSave
-                {
-                    SaveName = "AutoSave",
-                    PlayerName = _currentProfile.PlayerName,
-                    SaveDate = DateTime.Now,
-                    PlayTimeSeconds = (int)(DateTime.Now - _sessionStartTime).TotalSeconds,
-                    CurrentState = _gameManager.CurrentState,
-                    CurrentPhase = _gameManager.CurrentPhase
-                };
+                // Auto-save game progress with full workspace state
+                int playTimeSeconds = (int)(DateTime.Now - _sessionStartTime).TotalSeconds;
+                var gameSave = _gameManager.CreateGameSave("AutoSave", _currentProfile.PlayerName, playTimeSeconds);
 
                 _saveManager.SaveGame(gameSave, _currentProfile.PlayerName);
 
@@ -1539,16 +1532,14 @@ namespace BiochemSimulator
                     return;
                 }
 
-                // Create a game save object
-                var gameSave = new GameSave
-                {
-                    SaveName = saveName,
-                    PlayerName = _currentProfile.PlayerName,
-                    SaveDate = DateTime.Now,
-                    PlayTimeSeconds = (int)(DateTime.Now - _sessionStartTime).TotalSeconds,
-                    CurrentState = _gameManager.CurrentState,
-                    CurrentPhase = _gameManager.CurrentPhase
-                };
+                // Create a game save object with full workspace state
+                int playTimeSeconds = (int)(DateTime.Now - _sessionStartTime).TotalSeconds;
+                var gameSave = _gameManager.CreateGameSave(saveName, _currentProfile.PlayerName, playTimeSeconds);
+
+                // Add session stats
+                gameSave.SessionAtomsPlaced = _gameManager.CurrentAtomWorkspace.Count;
+                gameSave.SessionMoleculesCreated = _gameManager.CurrentMolecules.Count;
+                gameSave.SessionOrganismsDefeated = _currentProfile.TotalOrganismsDefeated;
 
                 // Save the game
                 _saveManager.SaveGame(gameSave, _currentProfile.PlayerName);
@@ -1558,7 +1549,19 @@ namespace BiochemSimulator
                 _currentProfile.HasActiveSave = true;
                 _saveManager.SaveProfile(_currentProfile);
 
-                MessageBox.Show($"Game saved successfully!\n\nSave Name: {gameSave.SaveName}",
+                int atomCount = gameSave.WorkspaceAtoms.Count;
+                int moleculeCount = gameSave.WorkspaceMolecules.Count;
+                int organismCount = gameSave.ActiveOrganisms.Count;
+
+                MessageBox.Show(
+                    $"Game saved successfully!\n\n" +
+                    $"Save Name: {gameSave.SaveName}\n" +
+                    $"State: {gameSave.CurrentState}\n" +
+                    $"Phase: {gameSave.CurrentPhase}\n\n" +
+                    $"Workspace saved:\n" +
+                    $"  - {atomCount} atom(s)\n" +
+                    $"  - {moleculeCount} molecule(s)\n" +
+                    $"  - {organismCount} organism(s)",
                     "Game Saved", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
@@ -1721,10 +1724,10 @@ namespace BiochemSimulator
         {
             try
             {
-                // Get all saves for current profile
-                var saves = _saveManager.GetSavesForProfile(_currentProfile.PlayerName);
+                // Get all saves with their file paths for current profile
+                var savesWithPaths = _saveManager.GetSavesWithPaths(_currentProfile.PlayerName);
 
-                if (saves.Count == 0)
+                if (savesWithPaths.Count == 0)
                 {
                     MessageBox.Show("No saved games found for this profile.",
                         "No Saves", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -1732,23 +1735,20 @@ namespace BiochemSimulator
                 }
 
                 // Create a simple list dialog
-                var saveNames = saves.Select(s => $"{s.SaveName} - {s.SaveDate:g}").ToList();
+                var saveNames = savesWithPaths.Select(s => $"{s.Save.SaveName} - {s.Save.SaveDate:g}").ToList();
                 var selectedSave = ShowSaveSelectionDialog(saveNames);
 
                 if (selectedSave != null)
                 {
                     var saveIndex = saveNames.IndexOf(selectedSave);
-                    if (saveIndex < 0 || saveIndex >= saves.Count)
+                    if (saveIndex < 0 || saveIndex >= savesWithPaths.Count)
                     {
                         MessageBox.Show("Error selecting save game.", "Selection Error",
                             MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
 
-                    var saveToLoad = saves[saveIndex];
-                    var saveFilePath = System.IO.Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                        "BiochemSimulator", "Saves", _currentProfile.PlayerName, $"{saveToLoad.SaveName}.json");
+                    var (saveToLoad, saveFilePath) = savesWithPaths[saveIndex];
 
                     System.Diagnostics.Debug.WriteLine($"Loading game from: {saveFilePath}");
 
@@ -1763,19 +1763,25 @@ namespace BiochemSimulator
 
                     if (gameSave != null)
                     {
-                        // Restore game state and phase
-                        _gameManager.ChangeState(gameSave.CurrentState);
+                        // Restore full workspace state using GameManager
+                        _gameManager.RestoreFromGameSave(gameSave);
 
-                        // Note: Full state restoration (atoms, molecules, organisms) would require
-                        // implementing serialization for those complex objects. For now, we just
-                        // restore the game state and phase.
+                        // Refresh UI elements to reflect restored state
+                        RefreshWorkspaceUI();
+
+                        int atomCount = gameSave.WorkspaceAtoms.Count;
+                        int moleculeCount = gameSave.WorkspaceMolecules.Count;
+                        int organismCount = gameSave.ActiveOrganisms.Count;
 
                         MessageBox.Show(
                             $"Game loaded successfully!\n\n" +
                             $"Save: {gameSave.SaveName}\n" +
                             $"State: {gameSave.CurrentState}\n" +
                             $"Phase: {gameSave.CurrentPhase}\n\n" +
-                            $"Note: Full workspace restoration coming soon!",
+                            $"Workspace restored:\n" +
+                            $"  - {atomCount} atom(s)\n" +
+                            $"  - {moleculeCount} molecule(s)\n" +
+                            $"  - {organismCount} organism(s)",
                             "Game Loaded",
                             MessageBoxButton.OK,
                             MessageBoxImage.Information);
@@ -1911,6 +1917,80 @@ namespace BiochemSimulator
                 "About Biochemistry Simulator",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
+        }
+
+        /// <summary>
+        /// Refreshes all workspace UI elements after loading a saved game
+        /// </summary>
+        private void RefreshWorkspaceUI()
+        {
+            // Clear and refresh atom visuals on the canvas
+            AtomicCanvas.Children.Clear();
+            _atomVisuals.Clear();
+
+            // Redraw workspace atoms
+            foreach (var atom in _gameManager.CurrentAtomWorkspace)
+            {
+                CreateAtomVisual(atom);
+            }
+
+            // Refresh workspace atoms list
+            WorkspaceAtomsList.ItemsSource = null;
+            WorkspaceAtomsList.ItemsSource = _gameManager.CurrentAtomWorkspace;
+
+            // Refresh beaker contents
+            BeakerContents.ItemsSource = null;
+            BeakerContents.ItemsSource = _gameManager.CurrentBeaker;
+            UpdateBeakerVisuals();
+
+            // Refresh chemical inventory based on current state
+            var chemicals = _gameManager.GetAvailableChemicalsForCurrentPhase();
+            ChemicalInventory.ItemsSource = chemicals;
+
+            // Update weapon inventory for outbreak phase
+            if (_gameManager.CurrentState == GameState.VirusOutbreak ||
+                _gameManager.CurrentState == GameState.ChemicalWarfare)
+            {
+                var weapons = _gameManager.Chemistry.GetDisinfectants();
+                WeaponInventory.ItemsSource = weapons;
+            }
+
+            // Update status text based on current state
+            UpdateStatusForCurrentState();
+
+            // Check for hazards with current workspace
+            if (_gameManager.CurrentAtomWorkspace.Count > 0)
+            {
+                CheckHazards();
+                WorkspaceInstructions.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                WorkspaceInstructions.Visibility = Visibility.Visible;
+            }
+        }
+
+        /// <summary>
+        /// Updates status text based on current game state
+        /// </summary>
+        private void UpdateStatusForCurrentState()
+        {
+            switch (_gameManager.CurrentState)
+            {
+                case GameState.AtomicChemistry:
+                    AtomicStatusText.Text = "Workspace restored. Select atoms to build molecules.";
+                    break;
+                case GameState.BiochemSimulator:
+                    AtomicStatusText.Text = "Workspace restored. Continue creating biochemicals.";
+                    break;
+                case GameState.VirusOutbreak:
+                case GameState.ChemicalWarfare:
+                    AtomicStatusText.Text = $"Battle restored. {_gameManager.Organisms.GetAliveCount()} organisms active.";
+                    break;
+                default:
+                    AtomicStatusText.Text = "Game loaded.";
+                    break;
+            }
         }
 
         #endregion

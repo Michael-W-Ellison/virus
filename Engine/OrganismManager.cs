@@ -230,5 +230,53 @@ namespace BiochemSimulator.Engine
 
             return stats;
         }
+
+        /// <summary>
+        /// Restores organisms from serialized data
+        /// </summary>
+        public void RestoreOrganisms(List<Models.SerializableOrganism> serializedOrganisms,
+            int totalCreated, int generationsEvolved)
+        {
+            _organisms.Clear();
+            TotalOrganismsCreated = totalCreated;
+            GenerationsEvolved = generationsEvolved;
+            _outbreakStartTime = DateTime.Now;
+
+            foreach (var serOrg in serializedOrganisms)
+            {
+                var organism = new Organism
+                {
+                    Id = Guid.TryParse(serOrg.Id, out var id) ? id : Guid.NewGuid(),
+                    Position = new Point(serOrg.PositionX, serOrg.PositionY),
+                    Health = serOrg.Health,
+                    Size = serOrg.Size,
+                    Generation = serOrg.Generation,
+                    Color = Color.FromRgb(serOrg.ColorR, serOrg.ColorG, serOrg.ColorB),
+                    ReproductionRate = serOrg.ReproductionRate,
+                    MutationRate = serOrg.MutationRate,
+                    Type = (OrganismType)serOrg.Type,
+                    IsAlive = true,
+                    CreatedAt = DateTime.Now
+                };
+
+                // Restore resistances
+                foreach (var resistance in serOrg.Resistances)
+                {
+                    organism.Resistances[resistance.Key] = resistance.Value;
+                }
+
+                _organisms.Add(organism);
+            }
+        }
+
+        /// <summary>
+        /// Clears all organisms (used when restoring from save)
+        /// </summary>
+        public void ClearOrganisms()
+        {
+            _organisms.Clear();
+            TotalOrganismsCreated = 0;
+            GenerationsEvolved = 0;
+        }
     }
 }

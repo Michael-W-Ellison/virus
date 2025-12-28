@@ -279,6 +279,36 @@ namespace BiochemSimulator.Engine
         public string GetSaveFolderPath() => _saveFolderPath;
         public string GetProfilesFolderPath() => _profilesFolderPath;
 
+        /// <summary>
+        /// Gets a list of save file paths for a profile, matching save objects with their file paths
+        /// </summary>
+        public List<(GameSave Save, string FilePath)> GetSavesWithPaths(string playerName)
+        {
+            var result = new List<(GameSave, string)>();
+
+            try
+            {
+                string safePlayerName = GetSafeFileName(playerName);
+                var files = Directory.GetFiles(_saveFolderPath, $"{safePlayerName}_*.json");
+
+                foreach (var file in files)
+                {
+                    string json = File.ReadAllText(file);
+                    var save = JsonConvert.DeserializeObject<GameSave>(json);
+                    if (save != null)
+                    {
+                        result.Add((save, file));
+                    }
+                }
+
+                return result.OrderByDescending(x => x.Save.SaveDate).ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to load saves: {ex.Message}");
+            }
+        }
+
         #endregion
     }
 }
