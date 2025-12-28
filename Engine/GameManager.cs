@@ -197,16 +197,24 @@ namespace BiochemSimulator.Engine
                     break;
 
                 case ExperimentPhase.AminoAcids:
+                    _currentPhase = ExperimentPhase.Proteins;
+                    ShowTutorialMessage("Excellent! You've created amino acids. Now let's combine them into proteins - the workhorses of life!");
+                    break;
+                case ExperimentPhase.Proteins:
                     _currentPhase = ExperimentPhase.RNA;
-                    ShowTutorialMessage("Excellent! You've created proteins. Now let's make RNA.");
+                    ShowTutorialMessage("Great! Proteins are ready. Now let's create RNA - the messenger of genetic information.");
                     break;
                 case ExperimentPhase.RNA:
                     _currentPhase = ExperimentPhase.DNA;
                     ShowTutorialMessage("Great! RNA formed. Now let's create DNA, the blueprint of life.");
                     break;
                 case ExperimentPhase.DNA:
+                    _currentPhase = ExperimentPhase.Lipids;
+                    ShowTutorialMessage("DNA created! Now let's create lipids - the building blocks of cell membranes.");
+                    break;
+                case ExperimentPhase.Lipids:
                     _currentPhase = ExperimentPhase.CellMembrane;
-                    ShowTutorialMessage("DNA created! Now we need a cell membrane to contain everything.");
+                    ShowTutorialMessage("Lipids ready! Now let's assemble the cell membrane to contain everything.");
                     break;
                 case ExperimentPhase.CellMembrane:
                     _currentPhase = ExperimentPhase.PrimitiveCell;
@@ -371,15 +379,25 @@ namespace BiochemSimulator.Engine
                     return "Great! Now let's create more complex molecules. Try making methane (CH4) from Carbon and Hydrogen, " +
                            "or carbon dioxide (CO2) from Carbon and Oxygen. Watch out for unstable combinations!";
                 case ExperimentPhase.AminoAcids:
-                    return "Now we move to biochemistry! Let's create proteins from amino acids. " +
+                    return "Now we move to biochemistry! Let's start with amino acids - the building blocks of proteins. " +
                            "Combine Glycine, Alanine, and Cysteine in the beaker.";
+                case ExperimentPhase.Proteins:
+                    return "Excellent! Now let's fold these amino acids into proteins. " +
+                           "Proteins are the molecular machines that power all life. Continue combining amino acids!";
                 case ExperimentPhase.RNA:
-                    return "Now let's create RNA. Combine Adenine, Uracil, Cytosine, and Guanine.";
+                    return "Now let's create RNA - the messenger molecule. Combine Adenine, Uracil, Cytosine, and Guanine.";
                 case ExperimentPhase.DNA:
-                    return "Time to make DNA! Combine Adenine, Thymine, Cytosine, and Guanine. " +
+                    return "Time to make DNA - the blueprint of life! Combine Adenine, Thymine, Cytosine, and Guanine. " +
                            "Note: DNA uses Thymine instead of Uracil.";
+                case ExperimentPhase.Lipids:
+                    return "Now let's create lipids - fatty molecules that form cell membranes. " +
+                           "Combine Phospholipid and Cholesterol to create membrane components.";
                 case ExperimentPhase.CellMembrane:
-                    return "Finally, let's create a cell membrane. Combine Phospholipid and Cholesterol.";
+                    return "Almost there! Let's assemble the cell membrane. " +
+                           "Combine your lipids to create the protective barrier around the cell.";
+                case ExperimentPhase.PrimitiveCell:
+                    return "All components are coming together! Watch as the first primitive cell forms. " +
+                           "This is the moment where chemistry becomes biology!";
                 default:
                     return "";
             }

@@ -18,19 +18,19 @@ namespace BiochemSimulator.Models
 
     public enum ExperimentPhase
     {
-        // Atomic Phase
-        BuildingAtoms,
+        // Atomic Phase (AtomicChemistry state)
         SimpleMolecules,        // H2, O2, H2O
         ComplexMolecules,       // CH4, CO2, NH3
 
-        // Biochemistry Phase
+        // Biochemistry Phase (BiochemSimulator state)
         AminoAcids,
         Proteins,
-        Lipids,
         RNA,
         DNA,
+        Lipids,
         CellMembrane,
-        PrimitiveCell,
-        LivingOrganism
+
+        // Life Creation Phase (CreatingLife state)
+        PrimitiveCell
     }
 }
