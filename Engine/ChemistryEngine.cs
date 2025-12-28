@@ -215,6 +215,25 @@ namespace BiochemSimulator.Engine
                 .ToList();
         }
 
+        /// <summary>
+        /// Returns chemicals available for molecular chemistry experiments
+        /// (combining simple molecules into larger structures)
+        /// </summary>
+        public List<Chemical> GetMolecularChemicals()
+        {
+            var molecularChemicals = new List<string>
+            {
+                "Water", "Methane", "Carbon Dioxide", "Ammonia",
+                "Hydrogen Peroxide", "Ethanol", "Glucose"
+            };
+
+            return _chemicals.Values
+                .Where(c => molecularChemicals.Contains(c.Name) ||
+                           c.Type == ChemicalType.Organic ||
+                           c.Type == ChemicalType.Catalyst)
+                .ToList();
+        }
+
         public ChemicalReaction? TryReact(List<Chemical> chemicals)
         {
             foreach (var reaction in _reactions)

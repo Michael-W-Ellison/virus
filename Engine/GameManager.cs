@@ -190,9 +190,10 @@ namespace BiochemSimulator.Engine
                     break;
 
                 case ExperimentPhase.ComplexMolecules:
-                    _currentPhase = ExperimentPhase.AminoAcids;
-                    ChangeState(GameState.BiochemSimulator);
-                    ShowTutorialMessage("Great! Now you understand molecular chemistry. Let's move to biochemistry and create the building blocks of life!");
+                    ChangeState(GameState.MolecularChemistry);
+                    ShowTutorialMessage("Excellent! Now let's combine your molecules into larger structures. " +
+                        "Try combining water with carbon dioxide, or create organic compounds. " +
+                        "Click 'Advance to Biochemistry' when ready to proceed.");
                     break;
 
                 case ExperimentPhase.AminoAcids:
@@ -234,6 +235,20 @@ namespace BiochemSimulator.Engine
                     ClearAtomWorkspace();
                 });
             });
+        }
+
+        /// <summary>
+        /// Advances from MolecularChemistry state to BiochemSimulator state
+        /// </summary>
+        public void AdvanceToBiochemistry()
+        {
+            if (_currentState != GameState.MolecularChemistry)
+                return;
+
+            _currentPhase = ExperimentPhase.AminoAcids;
+            ChangeState(GameState.BiochemSimulator);
+            ShowTutorialMessage("Great! Now you understand molecular chemistry. Let's move to biochemistry and create the building blocks of life!");
+            PhaseChanged?.Invoke(this, _currentPhase);
         }
 
         public void DisposeOrganismsInTrash()
@@ -297,7 +312,46 @@ namespace BiochemSimulator.Engine
                     ChangeState(GameState.GameOver);
                     ShowTutorialMessage("💀 Game Over! The organisms have overwhelmed your system!");
                 }
+                // Escalate to ChemicalWarfare when organisms become too evolved or dangerous
+                else if (_currentState == GameState.VirusOutbreak && ShouldEscalateToChemicalWarfare())
+                {
+                    EscalateToChemicalWarfare();
+                }
             }
+        }
+
+        private bool ShouldEscalateToChemicalWarfare()
+        {
+            // Escalate when organisms reach generation 5+ or SuperVirus types appear
+            if (_organismManager.GenerationsEvolved >= 5)
+                return true;
+
+            // Check for SuperVirus organisms
+            var organisms = _organismManager.Organisms;
+            if (organisms.Any(o => o.IsAlive && o.Type == OrganismType.SuperVirus))
+                return true;
+
+            // Escalate if organisms become highly resistant (average resistance > 50%)
+            var aliveOrganisms = organisms.Where(o => o.IsAlive).ToList();
+            if (aliveOrganisms.Count > 0)
+            {
+                double avgResistance = aliveOrganisms
+                    .Where(o => o.Resistances.Any())
+                    .SelectMany(o => o.Resistances.Values)
+                    .DefaultIfEmpty(0)
+                    .Average();
+                if (avgResistance > 0.5)
+                    return true;
+            }
+
+            return false;
+        }
+
+        private void EscalateToChemicalWarfare()
+        {
+            ChangeState(GameState.ChemicalWarfare);
+            ShowTutorialMessage("☣️ CRITICAL: Organisms have evolved into a SuperVirus! " +
+                "This is now CHEMICAL WARFARE. Use stronger chemicals to survive!");
         }
 
         private void ShowTutorialMessage(string message)
@@ -333,7 +387,12 @@ namespace BiochemSimulator.Engine
 
         public List<Chemical> GetAvailableChemicalsForCurrentPhase()
         {
-            if (_currentState == GameState.BiochemSimulator ||
+            if (_currentState == GameState.MolecularChemistry)
+            {
+                // In molecular chemistry, player can combine molecules they've created
+                return _chemistryEngine.GetMolecularChemicals();
+            }
+            else if (_currentState == GameState.BiochemSimulator ||
                 _currentState == GameState.CreatingLife)
             {
                 return _chemistryEngine.GetChemicalsForPhase(_currentPhase);

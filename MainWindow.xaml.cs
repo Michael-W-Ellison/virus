@@ -165,6 +165,13 @@ namespace BiochemSimulator
                         InitializeAtomicWorkspace();
                         break;
 
+                    case GameState.MolecularChemistry:
+                        // Show both workspace and simulator for combining molecules
+                        AtomicWorkspaceView.Visibility = Visibility.Visible;
+                        SimulatorView.Visibility = Visibility.Visible;
+                        UpdateChemicalInventory();
+                        break;
+
                     case GameState.BiochemSimulator:
                         SimulatorView.Visibility = Visibility.Visible;
                         UpdateChemicalInventory();
@@ -202,6 +209,14 @@ namespace BiochemSimulator
                         break;
 
                     case GameState.VirusOutbreak:
+                        DesktopOverlay.Visibility = Visibility.Visible;
+                        DesktopUI.Visibility = Visibility.Visible;
+                        OrganismStats.Visibility = Visibility.Visible;
+                        UpdateWeaponInventory();
+                        break;
+
+                    case GameState.ChemicalWarfare:
+                        // Escalated outbreak - same UI but more dangerous
                         DesktopOverlay.Visibility = Visibility.Visible;
                         DesktopUI.Visibility = Visibility.Visible;
                         OrganismStats.Visibility = Visibility.Visible;

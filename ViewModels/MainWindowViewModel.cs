@@ -270,6 +270,11 @@ namespace BiochemSimulator.ViewModels
                 case GameState.AtomicChemistry:
                     IsAtomicWorkspaceVisible = true;
                     break;
+                case GameState.MolecularChemistry:
+                    // Show both workspace (to see molecules) and simulator (to combine them)
+                    IsAtomicWorkspaceVisible = true;
+                    IsSimulatorVisible = true;
+                    break;
                 case GameState.BiochemSimulator:
                 case GameState.CreatingLife:
                 case GameState.ObservingLife:
