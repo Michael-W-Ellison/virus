@@ -10,11 +10,19 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <!-- Portable simulation core (engine + models). All chemistry/biology
+         logic lives here and builds on any OS; this WPF project is only the
+         Windows presentation layer on top of it. -->
+    <ProjectReference Include="BiochemSimulator.Core\BiochemSimulator.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Exclude test project files from main project build -->
+    <!-- These folders are separate projects; exclude them from this project's
+         default source globbing. -->
+    <Compile Remove="BiochemSimulator.Core\**" />
+    <EmbeddedResource Remove="BiochemSimulator.Core\**" />
+    <None Remove="BiochemSimulator.Core\**" />
+    <Page Remove="BiochemSimulator.Core\**" />
     <Compile Remove="BiochemSimulator.Tests\**" />
     <EmbeddedResource Remove="BiochemSimulator.Tests\**" />
     <None Remove="BiochemSimulator.Tests\**" />

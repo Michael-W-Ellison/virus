@@ -2,7 +2,7 @@ using BiochemSimulator.Engine;
 using BiochemSimulator.Models;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows;
+using BiochemSimulator.Core.Primitives;
 using Xunit;
 
 namespace BiochemSimulator.Tests.Engine

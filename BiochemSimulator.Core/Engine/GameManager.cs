@@ -2,9 +2,7 @@ using BiochemSimulator.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Media;
+using BiochemSimulator.Core.Primitives;
 
 namespace BiochemSimulator.Engine
 {
@@ -21,6 +19,7 @@ namespace BiochemSimulator.Engine
         private List<Atom> _currentAtomWorkspace;
         private List<Molecule> _currentMolecules;
         private Dictionary<ExperimentPhase, bool> _phasesCompleted;
+        private readonly IGameScheduler _scheduler;
 
         public event EventHandler<GameState>? StateChanged;
         public event EventHandler<ExperimentPhase>? PhaseChanged;
@@ -37,8 +36,9 @@ namespace BiochemSimulator.Engine
         public List<Atom> CurrentAtomWorkspace => _currentAtomWorkspace;
         public List<Molecule> CurrentMolecules => _currentMolecules;
 
-        public GameManager(double screenWidth, double screenHeight)
+        public GameManager(double screenWidth, double screenHeight, IGameScheduler? scheduler = null)
         {
+            _scheduler = scheduler ?? new DefaultGameScheduler();
             _atomicEngine = new AtomicEngine();
             _chemistryEngine = new ChemistryEngine();
             _organismManager = new OrganismManager(_chemistryEngine, screenWidth, screenHeight);
@@ -229,13 +229,10 @@ namespace BiochemSimulator.Engine
                     ChangeState(GameState.CreatingLife);
                     ShowTutorialMessage("Amazing! All components are ready. Life is forming...");
                     // Schedule the completion of life creation
-                    Task.Delay(3000).ContinueWith(_ =>
+                    _scheduler.ScheduleDelayed(TimeSpan.FromMilliseconds(3000), () =>
                     {
-                        Application.Current.Dispatcher.Invoke(() =>
-                        {
-                            ChangeState(GameState.ObservingLife);
-                            ShowTutorialMessage("Life created! Use the microscope to observe the organisms.");
-                        });
+                        ChangeState(GameState.ObservingLife);
+                        ShowTutorialMessage("Life created! Use the microscope to observe the organisms.");
                     });
                     break;
             }
@@ -243,13 +240,10 @@ namespace BiochemSimulator.Engine
             PhaseChanged?.Invoke(this, _currentPhase);
 
             // Delay clearing to let user see their accomplishment (3 seconds)
-            Task.Delay(3000).ContinueWith(_ =>
+            _scheduler.ScheduleDelayed(TimeSpan.FromMilliseconds(3000), () =>
             {
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    ClearBeaker();
-                    ClearAtomWorkspace();
-                });
+                ClearBeaker();
+                ClearAtomWorkspace();
             });
         }
 
@@ -260,12 +254,9 @@ namespace BiochemSimulator.Engine
 
             // Schedule the alarm for 30 seconds later
             _alarmScheduledTime = DateTime.Now.AddSeconds(30);
-            Task.Delay(30000).ContinueWith(_ =>
+            _scheduler.ScheduleDelayed(TimeSpan.FromMilliseconds(30000), () =>
             {
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    TriggerAlarm();
-                });
+                TriggerAlarm();
             });
         }
 
@@ -275,13 +266,10 @@ namespace BiochemSimulator.Engine
             AlarmTriggered?.Invoke(this, EventArgs.Empty);
             ShowTutorialMessage("⚠️ BIOHAZARD ALERT! Organisms have escaped and are mutating on your desktop!");
 
-            Task.Delay(3000).ContinueWith(_ =>
+            _scheduler.ScheduleDelayed(TimeSpan.FromMilliseconds(3000), () =>
             {
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    ChangeState(GameState.VirusOutbreak);
-                    ShowTutorialMessage("The virus is spreading! Create chemicals to eradicate it.");
-                });
+                ChangeState(GameState.VirusOutbreak);
+                ShowTutorialMessage("The virus is spreading! Create chemicals to eradicate it.");
             });
         }
 

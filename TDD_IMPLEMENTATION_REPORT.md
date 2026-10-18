@@ -276,15 +276,30 @@ MessageBox.Show(
 
 ## 4. Project Structure
 
+The simulation logic was extracted into a portable `BiochemSimulator.Core`
+class library targeting plain `net8.0` (no `-windows`, no WPF). The WPF app and
+the test project both reference it. The core carries no Windows dependency:
+`System.Windows.Point` / `System.Windows.Media.Color` were replaced with
+framework-neutral primitives in `BiochemSimulator.Core.Primitives`, and the
+timed phase transitions that used `Application.Current.Dispatcher` now go
+through an injected `IGameScheduler` (the WPF app supplies a dispatcher-backed
+implementation; the default runs on the thread pool). The WPF layer converts
+between core and WPF `Point`/`Color` at a single boundary (`Interop/WpfInterop`).
+
 ```
 BiochemSimulator/
-├── BiochemSimulator.csproj (Modified - excludes test files)
-├── BiochemSimulator.sln (Created - solution file)
-├── MainWindow.xaml (Modified - menu, improved styles)
-├── MainWindow.xaml.cs (Modified - many fixes)
-├── Engine/
-│   └── GameManager.cs (Modified - progression delay)
-└── BiochemSimulator.Tests/
+├── BiochemSimulator.csproj (WPF app - net8.0-windows; references Core)
+├── BiochemSimulator.sln
+├── MainWindow.xaml / .xaml.cs (WPF presentation)
+├── Interop/
+│   ├── WpfInterop.cs (core <-> WPF Point/Color conversions)
+│   └── DispatcherGameScheduler.cs (IGameScheduler on the UI thread)
+├── BiochemSimulator.Core/ (portable net8.0 library)
+│   ├── BiochemSimulator.Core.csproj
+│   ├── Primitives/  (Point, Color, Colors - framework-neutral)
+│   ├── Models/
+│   └── Engine/      (GameManager, IGameScheduler, engines, SaveManager)
+└── BiochemSimulator.Tests/ (net8.0; references Core, runs on any OS)
     ├── BiochemSimulator.Tests.csproj (Created)
     ├── README.md (Created - comprehensive test documentation)
     ├── Models/

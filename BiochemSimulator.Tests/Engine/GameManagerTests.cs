@@ -325,7 +325,7 @@ namespace BiochemSimulator.Tests.Engine
             var bleach = manager.Chemistry.GetChemical("Bleach")!;
 
             // Act
-            manager.ApplyChemicalToDesktop(bleach, new System.Windows.Point(400, 300), 200);
+            manager.ApplyChemicalToDesktop(bleach, new BiochemSimulator.Core.Primitives.Point(400, 300), 200);
             manager.Update(1.0); // Update to remove dead organisms
 
             // Assert - Should have killed some organisms or at least affected them

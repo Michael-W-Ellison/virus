@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\BiochemSimulator.csproj" />
+    <ProjectReference Include="..\BiochemSimulator.Core\BiochemSimulator.Core.csproj" />
   </ItemGroup>
 
 </Project>

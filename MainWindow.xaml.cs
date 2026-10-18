@@ -77,7 +77,7 @@ namespace BiochemSimulator
                 double screenWidth = SystemParameters.PrimaryScreenWidth;
                 double screenHeight = SystemParameters.PrimaryScreenHeight;
 
-                _gameManager = new GameManager(screenWidth, screenHeight);
+                _gameManager = new GameManager(screenWidth, screenHeight, new DispatcherGameScheduler(Dispatcher));
                 _gameManager.StateChanged += OnStateChanged;
                 _gameManager.PhaseChanged += OnPhaseChanged;
                 _gameManager.TutorialMessageChanged += OnTutorialMessageChanged;
@@ -363,7 +363,7 @@ namespace BiochemSimulator
                 {
                     Width = BeakerCanvas.Width,
                     Height = 30,
-                    Fill = new SolidColorBrush(chemical.Color),
+                    Fill = new SolidColorBrush(chemical.Color.ToMediaColor()),
                     Opacity = 0.6
                 };
                 Canvas.SetLeft(rect, 0);
@@ -453,7 +453,7 @@ namespace BiochemSimulator
                     Width = organism.Size,
                     Height = organism.Size,
                     Fill = new RadialGradientBrush(
-                        organism.Color,
+                        organism.Color.ToMediaColor(),
                         Color.FromArgb(100, organism.Color.R, organism.Color.G, organism.Color.B)
                     ),
                     Opacity = 0.7 + (organism.Health / 200.0)
@@ -537,14 +537,14 @@ namespace BiochemSimulator
                 Point location = e.GetPosition(DesktopOverlay);
                 double radius = 80;
 
-                _gameManager.ApplyChemicalToDesktop(_selectedWeapon, location, radius);
+                _gameManager.ApplyChemicalToDesktop(_selectedWeapon, location.ToCorePoint(), radius);
 
                 // Add visual spray effect
                 var spray = new ChemicalSpray
                 {
                     Location = location,
                     Radius = radius,
-                    Color = _selectedWeapon.Color,
+                    Color = _selectedWeapon.Color.ToMediaColor(),
                     Opacity = 0.6,
                     Chemical = _selectedWeapon
                 };
@@ -616,7 +616,7 @@ namespace BiochemSimulator
                 {
                     Width = 150,
                     Height = 150,
-                    Fill = new SolidColorBrush(reaction.VisualEffect.Value),
+                    Fill = new SolidColorBrush(reaction.VisualEffect.Value.ToMediaColor()),
                     Opacity = 0.8
                 };
 
@@ -749,7 +749,7 @@ namespace BiochemSimulator
                     Text = atom.Symbol,
                     FontWeight = FontWeights.Bold,
                     FontSize = 18,
-                    Foreground = new SolidColorBrush(atom.Color),
+                    Foreground = new SolidColorBrush(atom.Color.ToMediaColor()),
                     HorizontalAlignment = HorizontalAlignment.Center
                 });
                 sp.Children.Add(new TextBlock
@@ -803,7 +803,7 @@ namespace BiochemSimulator
 
                 // Create a new atom instance
                 var atom = _selectedAtom.Clone();
-                atom.Position = position;
+                atom.Position = position.ToCorePoint();
 
                 // Add to game manager
                 _gameManager.AddAtomToWorkspace(atom);
@@ -843,7 +843,7 @@ namespace BiochemSimulator
                 Width = 40,
                 Height = 40,
                 Fill = new RadialGradientBrush(
-                    atom.Color,
+                    atom.Color.ToMediaColor(),
                     Color.FromArgb(255, atom.Color.R, atom.Color.G, atom.Color.B) // Fully opaque
                 ),
                 Stroke = Brushes.White,
@@ -856,7 +856,7 @@ namespace BiochemSimulator
             // Add radiation glow effect for radioactive atoms
             if (atom.IsRadioactive)
             {
-                var glowColor = GetRadiationGlowColor(atom.RadiationLevel, atom.Color);
+                var glowColor = GetRadiationGlowColor(atom.RadiationLevel, atom.Color.ToMediaColor());
                 ellipse.Effect = new System.Windows.Media.Effects.DropShadowEffect
                 {
                     Color = glowColor,
