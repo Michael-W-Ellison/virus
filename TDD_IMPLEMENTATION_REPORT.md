@@ -350,8 +350,14 @@ dotnet test --collect:"XPlat Code Coverage"
 - Drag-and-drop interactions
 
 ### Partial Implementation
-- **Save/Load System**: Currently saves game state and phase, but not full workspace (atoms, molecules, organisms with positions)
-- **Full Workspace Restoration**: Would require serialization of WPF objects (Point, Color, Visual elements)
+- **Save/Load System**: Now saves and restores the full live workspace — placed
+  atoms (symbol + position), built molecules (atoms, bonds, formula, position),
+  and active organisms (position, health, size, generation, color, reproduction
+  and mutation rates, resistances) — along with game state and phase. Conversion
+  between the domain objects and the JSON-friendly `Serializable*` types lives in
+  `GameManager.CreateGameSave` / `LoadGameSave`; restoring the outbreak does not
+  re-seed organisms. Round-trip coverage is in `GameManagerSaveLoadTests`.
+- **Transient beaker contents** are intentionally not persisted (cleared on load).
 
 ### Expected Behaviors
 - **Two Water Molecules**: H₂O + H₂O has no reaction defined (expected)
@@ -409,10 +415,10 @@ If you're not seeing the visual improvements:
 - [ ] Integration tests for complete game workflows
 - [ ] Performance benchmarks for 500+ organisms
 - [ ] UI automation tests with WPF testing framework
-- [ ] Save/Load round-trip tests with full workspace
+- [x] Save/Load round-trip tests with full workspace
 
 ### Features
-- [ ] Full workspace serialization (atoms, molecules, organisms with positions)
+- [x] Full workspace serialization (atoms, molecules, organisms with positions)
 - [ ] Online save synchronization
 - [ ] Multiplayer/networking (if planned)
 - [ ] Achievement tracking in save files
