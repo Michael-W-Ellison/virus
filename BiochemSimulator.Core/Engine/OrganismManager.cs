@@ -2,8 +2,7 @@ using BiochemSimulator.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows;
-using System.Windows.Media;
+using BiochemSimulator.Core.Primitives;
 
 namespace BiochemSimulator.Engine
 {
@@ -59,6 +58,17 @@ namespace BiochemSimulator.Engine
                 _organisms.Add(organism);
                 TotalOrganismsCreated++;
             }
+        }
+
+        public void RestoreOrganisms(List<Organism> organisms)
+        {
+            _organisms = organisms ?? new List<Organism>();
+            _outbreakStartTime = DateTime.Now;
+
+            // Keep the running counters consistent with the restored population so
+            // the stats panel and the overwhelm check behave as they did pre-save.
+            TotalOrganismsCreated = _organisms.Count;
+            GenerationsEvolved = _organisms.Count > 0 ? _organisms.Max(o => o.Generation) : 0;
         }
 
         public void Update(double deltaTime)

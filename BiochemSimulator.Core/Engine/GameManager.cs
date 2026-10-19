@@ -2,8 +2,7 @@ using BiochemSimulator.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
-using System.Windows;
+using BiochemSimulator.Core.Primitives;
 
 namespace BiochemSimulator.Engine
 {
@@ -20,6 +19,7 @@ namespace BiochemSimulator.Engine
         private List<Atom> _currentAtomWorkspace;
         private List<Molecule> _currentMolecules;
         private Dictionary<ExperimentPhase, bool> _phasesCompleted;
+        private readonly IGameScheduler _scheduler;
 
         public event EventHandler<GameState>? StateChanged;
         public event EventHandler<ExperimentPhase>? PhaseChanged;
@@ -36,8 +36,9 @@ namespace BiochemSimulator.Engine
         public List<Atom> CurrentAtomWorkspace => _currentAtomWorkspace;
         public List<Molecule> CurrentMolecules => _currentMolecules;
 
-        public GameManager(double screenWidth, double screenHeight)
+        public GameManager(double screenWidth, double screenHeight, IGameScheduler? scheduler = null)
         {
+            _scheduler = scheduler ?? new DefaultGameScheduler();
             _atomicEngine = new AtomicEngine();
             _chemistryEngine = new ChemistryEngine();
             _organismManager = new OrganismManager(_chemistryEngine, screenWidth, screenHeight);
@@ -59,11 +60,18 @@ namespace BiochemSimulator.Engine
 
         public void ChangeState(GameState newState)
         {
+            ChangeState(newState, initializeOutbreak: true);
+        }
+
+        private void ChangeState(GameState newState, bool initializeOutbreak)
+        {
             _currentState = newState;
             _phaseStartTime = DateTime.Now;
             StateChanged?.Invoke(this, newState);
 
-            if (newState == GameState.VirusOutbreak)
+            // When entering the outbreak normally we seed a fresh population, but a
+            // restore supplies its own saved organisms and must not regenerate them.
+            if (newState == GameState.VirusOutbreak && initializeOutbreak)
             {
                 _organismManager.InitializeOutbreak(15);
             }
@@ -140,7 +148,16 @@ namespace BiochemSimulator.Engine
             }
 
             var molecule = _atomicEngine.CreateMolecule(atoms, bonds);
+            if (molecule != null)
+            {
+                _currentMolecules.Add(molecule);
+            }
             return molecule;
+        }
+
+        public void ClearMolecules()
+        {
+            _currentMolecules.Clear();
         }
 
         public void TryMolecularReaction(Molecule mol1, Molecule mol2)
@@ -212,13 +229,10 @@ namespace BiochemSimulator.Engine
                     ChangeState(GameState.CreatingLife);
                     ShowTutorialMessage("Amazing! All components are ready. Life is forming...");
                     // Schedule the completion of life creation
-                    Task.Delay(3000).ContinueWith(_ =>
+                    _scheduler.ScheduleDelayed(TimeSpan.FromMilliseconds(3000), () =>
                     {
-                        Application.Current.Dispatcher.Invoke(() =>
-                        {
-                            ChangeState(GameState.ObservingLife);
-                            ShowTutorialMessage("Life created! Use the microscope to observe the organisms.");
-                        });
+                        ChangeState(GameState.ObservingLife);
+                        ShowTutorialMessage("Life created! Use the microscope to observe the organisms.");
                     });
                     break;
             }
@@ -226,13 +240,10 @@ namespace BiochemSimulator.Engine
             PhaseChanged?.Invoke(this, _currentPhase);
 
             // Delay clearing to let user see their accomplishment (3 seconds)
-            Task.Delay(3000).ContinueWith(_ =>
+            _scheduler.ScheduleDelayed(TimeSpan.FromMilliseconds(3000), () =>
             {
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    ClearBeaker();
-                    ClearAtomWorkspace();
-                });
+                ClearBeaker();
+                ClearAtomWorkspace();
             });
         }
 
@@ -243,12 +254,9 @@ namespace BiochemSimulator.Engine
 
             // Schedule the alarm for 30 seconds later
             _alarmScheduledTime = DateTime.Now.AddSeconds(30);
-            Task.Delay(30000).ContinueWith(_ =>
+            _scheduler.ScheduleDelayed(TimeSpan.FromMilliseconds(30000), () =>
             {
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    TriggerAlarm();
-                });
+                TriggerAlarm();
             });
         }
 
@@ -258,13 +266,10 @@ namespace BiochemSimulator.Engine
             AlarmTriggered?.Invoke(this, EventArgs.Empty);
             ShowTutorialMessage("⚠️ BIOHAZARD ALERT! Organisms have escaped and are mutating on your desktop!");
 
-            Task.Delay(3000).ContinueWith(_ =>
+            _scheduler.ScheduleDelayed(TimeSpan.FromMilliseconds(3000), () =>
             {
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    ChangeState(GameState.VirusOutbreak);
-                    ShowTutorialMessage("The virus is spreading! Create chemicals to eradicate it.");
-                });
+                ChangeState(GameState.VirusOutbreak);
+                ShowTutorialMessage("The virus is spreading! Create chemicals to eradicate it.");
             });
         }
 
@@ -351,5 +356,207 @@ namespace BiochemSimulator.Engine
         {
             _organismManager.SetScreenSize(width, height);
         }
+
+        #region Save / Restore
+
+        /// <summary>
+        /// Captures the live workspace (placed atoms, built molecules, active
+        /// organisms) together with the current state and phase into a GameSave.
+        /// </summary>
+        public GameSave CreateGameSave(string saveName, string playerName, int playTimeSeconds, int organismsDefeated = 0)
+        {
+            var save = new GameSave
+            {
+                SaveName = saveName,
+                PlayerName = playerName,
+                SaveDate = DateTime.Now,
+                PlayTimeSeconds = playTimeSeconds,
+                CurrentState = _currentState,
+                CurrentPhase = _currentPhase,
+                SessionMoleculesCreated = _currentMolecules.Count,
+                SessionAtomsPlaced = _currentAtomWorkspace.Count,
+                SessionOrganismsDefeated = organismsDefeated
+            };
+
+            foreach (var atom in _currentAtomWorkspace)
+            {
+                save.WorkspaceAtoms.Add(ToSerializable(atom));
+            }
+
+            foreach (var molecule in _currentMolecules)
+            {
+                save.WorkspaceMolecules.Add(ToSerializable(molecule));
+            }
+
+            foreach (var organism in _organismManager.Organisms.Where(o => o.IsAlive))
+            {
+                save.ActiveOrganisms.Add(ToSerializable(organism));
+            }
+
+            return save;
+        }
+
+        /// <summary>
+        /// Rebuilds the live workspace from a saved game and restores the state and
+        /// phase. The outbreak is NOT re-seeded; the saved organisms are restored
+        /// as-is. StateChanged is raised so the UI can switch views, but
+        /// PhaseChanged is intentionally not raised (loading is not a phase
+        /// completion), so the caller refreshes phase-dependent UI itself.
+        /// </summary>
+        public void LoadGameSave(GameSave save)
+        {
+            if (save == null)
+                return;
+
+            _currentPhase = save.CurrentPhase;
+
+            _currentAtomWorkspace = save.WorkspaceAtoms
+                .Select(FromSerializable)
+                .Where(a => a != null)
+                .Select(a => a!)
+                .ToList();
+
+            _currentMolecules = save.WorkspaceMolecules
+                .Select(FromSerializable)
+                .Where(m => m != null)
+                .Select(m => m!)
+                .ToList();
+
+            var organisms = save.ActiveOrganisms.Select(FromSerializable).ToList();
+            _organismManager.RestoreOrganisms(organisms);
+
+            _currentBeaker.Clear();
+
+            ChangeState(save.CurrentState, initializeOutbreak: false);
+        }
+
+        private static SerializableAtom ToSerializable(Atom atom)
+        {
+            return new SerializableAtom
+            {
+                Symbol = atom.Symbol,
+                PositionX = atom.Position.X,
+                PositionY = atom.Position.Y,
+                CurrentBonds = atom.Bonds.Count
+            };
+        }
+
+        private Atom? FromSerializable(SerializableAtom serialized)
+        {
+            // Rebuild a full atom from the periodic table so all element data is
+            // restored; the serialized form only carries symbol and position.
+            var atom = _atomicEngine.GetAtom(serialized.Symbol);
+            if (atom == null)
+                return null;
+
+            atom.Position = new Point(serialized.PositionX, serialized.PositionY);
+            return atom;
+        }
+
+        private SerializableMolecule ToSerializable(Molecule molecule)
+        {
+            var serialized = new SerializableMolecule
+            {
+                Name = molecule.Name,
+                Formula = molecule.Formula,
+                PositionX = molecule.CenterOfMass.X,
+                PositionY = molecule.CenterOfMass.Y,
+                Atoms = molecule.Atoms.Select(ToSerializable).ToList()
+            };
+
+            foreach (var bond in molecule.Bonds)
+            {
+                int index1 = molecule.Atoms.IndexOf(bond.Atom1);
+                int index2 = molecule.Atoms.IndexOf(bond.Atom2);
+
+                if (index1 >= 0 && index2 >= 0)
+                {
+                    serialized.Bonds.Add(new SerializableBond
+                    {
+                        AtomIndex1 = index1,
+                        AtomIndex2 = index2,
+                        Type = bond.Type
+                    });
+                }
+            }
+
+            return serialized;
+        }
+
+        private Molecule? FromSerializable(SerializableMolecule serialized)
+        {
+            var atoms = new List<Atom>();
+            foreach (var serializedAtom in serialized.Atoms)
+            {
+                var atom = FromSerializable(serializedAtom);
+                if (atom != null)
+                    atoms.Add(atom);
+            }
+
+            if (atoms.Count == 0)
+                return null;
+
+            var bonds = new List<Bond>();
+            foreach (var serializedBond in serialized.Bonds)
+            {
+                if (serializedBond.AtomIndex1 < 0 || serializedBond.AtomIndex1 >= atoms.Count ||
+                    serializedBond.AtomIndex2 < 0 || serializedBond.AtomIndex2 >= atoms.Count)
+                    continue;
+
+                var bond = _atomicEngine.CreateBond(
+                    atoms[serializedBond.AtomIndex1],
+                    atoms[serializedBond.AtomIndex2],
+                    serializedBond.Type);
+
+                if (bond != null)
+                    bonds.Add(bond);
+            }
+
+            var molecule = _atomicEngine.CreateMolecule(atoms, bonds);
+            molecule.CenterOfMass = new Point(serialized.PositionX, serialized.PositionY);
+
+            // Preserve the saved identity if the engine could not re-identify it.
+            if (molecule.Name == "Unknown" && !string.IsNullOrEmpty(serialized.Name))
+                molecule.Name = serialized.Name;
+
+            return molecule;
+        }
+
+        private static SerializableOrganism ToSerializable(Organism organism)
+        {
+            return new SerializableOrganism
+            {
+                PositionX = organism.Position.X,
+                PositionY = organism.Position.Y,
+                Health = organism.Health,
+                Size = organism.Size,
+                Generation = organism.Generation,
+                ReproductionRate = organism.ReproductionRate,
+                MutationRate = organism.MutationRate,
+                ColorR = organism.Color.R,
+                ColorG = organism.Color.G,
+                ColorB = organism.Color.B,
+                Resistances = new Dictionary<string, double>(organism.Resistances)
+            };
+        }
+
+        private static Organism FromSerializable(SerializableOrganism serialized)
+        {
+            return new Organism
+            {
+                Position = new Point(serialized.PositionX, serialized.PositionY),
+                Health = serialized.Health,
+                Size = serialized.Size,
+                Generation = serialized.Generation,
+                ReproductionRate = serialized.ReproductionRate,
+                MutationRate = serialized.MutationRate,
+                Color = Color.FromRgb(serialized.ColorR, serialized.ColorG, serialized.ColorB),
+                Resistances = new Dictionary<string, double>(serialized.Resistances),
+                IsAlive = true,
+                Type = OrganismType.Virus
+            };
+        }
+
+        #endregion
     }
 }

@@ -50,8 +50,18 @@ namespace BiochemSimulator.Models
         public string Name { get; set; } = string.Empty;
         public string Formula { get; set; } = string.Empty;
         public List<SerializableAtom> Atoms { get; set; } = new List<SerializableAtom>();
+        // Bonds reference atoms by their index in the Atoms list above, so the
+        // molecule's bond topology (and therefore its chemistry) round-trips.
+        public List<SerializableBond> Bonds { get; set; } = new List<SerializableBond>();
         public double PositionX { get; set; }
         public double PositionY { get; set; }
+    }
+
+    public class SerializableBond
+    {
+        public int AtomIndex1 { get; set; }
+        public int AtomIndex2 { get; set; }
+        public BondType Type { get; set; }
     }
 
     public class SerializableOrganism
@@ -61,6 +71,8 @@ namespace BiochemSimulator.Models
         public double Health { get; set; }
         public double Size { get; set; }
         public int Generation { get; set; }
+        public double ReproductionRate { get; set; }
+        public double MutationRate { get; set; }
         public byte ColorR { get; set; }
         public byte ColorG { get; set; }
         public byte ColorB { get; set; }

@@ -30,7 +30,6 @@ namespace BiochemSimulator
         private Atom? _draggingAtom;
         private Point _dragStartPoint;
         private bool _isDragging;
-        private List<Molecule> _createdMolecules;
 
         // Profile and Achievement System
         private PlayerProfile _currentProfile;
@@ -47,7 +46,6 @@ namespace BiochemSimulator
                 _random = new Random();
                 _activeChemicals = new Dictionary<Point, ChemicalSpray>();
                 _atomVisuals = new List<AtomVisual>();
-                _createdMolecules = new List<Molecule>();
 
                 // Initialize profile system
                 _currentProfile = profile;
@@ -79,7 +77,7 @@ namespace BiochemSimulator
                 double screenWidth = SystemParameters.PrimaryScreenWidth;
                 double screenHeight = SystemParameters.PrimaryScreenHeight;
 
-                _gameManager = new GameManager(screenWidth, screenHeight);
+                _gameManager = new GameManager(screenWidth, screenHeight, new DispatcherGameScheduler(Dispatcher));
                 _gameManager.StateChanged += OnStateChanged;
                 _gameManager.PhaseChanged += OnPhaseChanged;
                 _gameManager.TutorialMessageChanged += OnTutorialMessageChanged;
@@ -283,16 +281,11 @@ namespace BiochemSimulator
         {
             try
             {
-                // Auto-save game progress
-                var gameSave = new GameSave
-                {
-                    SaveName = "AutoSave",
-                    PlayerName = _currentProfile.PlayerName,
-                    SaveDate = DateTime.Now,
-                    PlayTimeSeconds = (int)(DateTime.Now - _sessionStartTime).TotalSeconds,
-                    CurrentState = _gameManager.CurrentState,
-                    CurrentPhase = _gameManager.CurrentPhase
-                };
+                // Auto-save game progress (full live workspace)
+                var gameSave = _gameManager.CreateGameSave(
+                    "AutoSave",
+                    _currentProfile.PlayerName,
+                    (int)(DateTime.Now - _sessionStartTime).TotalSeconds);
 
                 _saveManager.SaveGame(gameSave, _currentProfile.PlayerName);
 
@@ -370,7 +363,7 @@ namespace BiochemSimulator
                 {
                     Width = BeakerCanvas.Width,
                     Height = 30,
-                    Fill = new SolidColorBrush(chemical.Color),
+                    Fill = new SolidColorBrush(chemical.Color.ToMediaColor()),
                     Opacity = 0.6
                 };
                 Canvas.SetLeft(rect, 0);
@@ -460,7 +453,7 @@ namespace BiochemSimulator
                     Width = organism.Size,
                     Height = organism.Size,
                     Fill = new RadialGradientBrush(
-                        organism.Color,
+                        organism.Color.ToMediaColor(),
                         Color.FromArgb(100, organism.Color.R, organism.Color.G, organism.Color.B)
                     ),
                     Opacity = 0.7 + (organism.Health / 200.0)
@@ -544,14 +537,14 @@ namespace BiochemSimulator
                 Point location = e.GetPosition(DesktopOverlay);
                 double radius = 80;
 
-                _gameManager.ApplyChemicalToDesktop(_selectedWeapon, location, radius);
+                _gameManager.ApplyChemicalToDesktop(_selectedWeapon, location.ToCorePoint(), radius);
 
                 // Add visual spray effect
                 var spray = new ChemicalSpray
                 {
                     Location = location,
                     Radius = radius,
-                    Color = _selectedWeapon.Color,
+                    Color = _selectedWeapon.Color.ToMediaColor(),
                     Opacity = 0.6,
                     Chemical = _selectedWeapon
                 };
@@ -623,7 +616,7 @@ namespace BiochemSimulator
                 {
                     Width = 150,
                     Height = 150,
-                    Fill = new SolidColorBrush(reaction.VisualEffect.Value),
+                    Fill = new SolidColorBrush(reaction.VisualEffect.Value.ToMediaColor()),
                     Opacity = 0.8
                 };
 
@@ -756,7 +749,7 @@ namespace BiochemSimulator
                     Text = atom.Symbol,
                     FontWeight = FontWeights.Bold,
                     FontSize = 18,
-                    Foreground = new SolidColorBrush(atom.Color),
+                    Foreground = new SolidColorBrush(atom.Color.ToMediaColor()),
                     HorizontalAlignment = HorizontalAlignment.Center
                 });
                 sp.Children.Add(new TextBlock
@@ -810,7 +803,7 @@ namespace BiochemSimulator
 
                 // Create a new atom instance
                 var atom = _selectedAtom.Clone();
-                atom.Position = position;
+                atom.Position = position.ToCorePoint();
 
                 // Add to game manager
                 _gameManager.AddAtomToWorkspace(atom);
@@ -850,7 +843,7 @@ namespace BiochemSimulator
                 Width = 40,
                 Height = 40,
                 Fill = new RadialGradientBrush(
-                    atom.Color,
+                    atom.Color.ToMediaColor(),
                     Color.FromArgb(255, atom.Color.R, atom.Color.G, atom.Color.B) // Fully opaque
                 ),
                 Stroke = Brushes.White,
@@ -863,7 +856,7 @@ namespace BiochemSimulator
             // Add radiation glow effect for radioactive atoms
             if (atom.IsRadioactive)
             {
-                var glowColor = GetRadiationGlowColor(atom.RadiationLevel, atom.Color);
+                var glowColor = GetRadiationGlowColor(atom.RadiationLevel, atom.Color.ToMediaColor());
                 ellipse.Effect = new System.Windows.Media.Effects.DropShadowEffect
                 {
                     Color = glowColor,
@@ -1043,7 +1036,7 @@ namespace BiochemSimulator
 
             if (molecule != null)
             {
-                _createdMolecules.Add(molecule);
+                // TryBuildMolecule already records the molecule in the game manager.
 
                 // Track stats and achievements
                 _currentProfile.TotalMoleculesCreated++;
@@ -1087,13 +1080,13 @@ namespace BiochemSimulator
                 WorkspaceInstructions.Visibility = Visibility.Visible;
 
                 // Enable combine button
-                if (_createdMolecules.Count >= 2)
+                if (_gameManager.CurrentMolecules.Count >= 2)
                 {
                     CombineMoleculesButton.IsEnabled = true;
                 }
 
                 // Provide clear guidance based on molecule count
-                if (_createdMolecules.Count == 1)
+                if (_gameManager.CurrentMolecules.Count == 1)
                 {
                     AtomicStatusText.Text = $"✓ Created {molecule.Name} ({molecule.Formula})! " +
                         $"Stability: {molecule.Stability}\n" +
@@ -1181,7 +1174,7 @@ namespace BiochemSimulator
 
         private void CombineMolecules_Click(object sender, RoutedEventArgs e)
         {
-            if (_createdMolecules.Count < 2)
+            if (_gameManager.CurrentMolecules.Count < 2)
             {
                 MessageBox.Show("Need at least 2 molecules to combine!", "Info",
                     MessageBoxButton.OK, MessageBoxImage.Information);
@@ -1189,8 +1182,8 @@ namespace BiochemSimulator
             }
 
             // Combine the last two molecules
-            var mol1 = _createdMolecules[_createdMolecules.Count - 2];
-            var mol2 = _createdMolecules[_createdMolecules.Count - 1];
+            var mol1 = _gameManager.CurrentMolecules[_gameManager.CurrentMolecules.Count - 2];
+            var mol2 = _gameManager.CurrentMolecules[_gameManager.CurrentMolecules.Count - 1];
 
             // Try the reaction
             var result = _gameManager.Atomic.TryReact(mol1, mol2);
@@ -1201,7 +1194,7 @@ namespace BiochemSimulator
                 _gameManager.TryMolecularReaction(mol1, mol2);
 
                 // Clear the workspace after successful reaction
-                _createdMolecules.Clear();
+                _gameManager.ClearMolecules();
                 AtomicCanvas.Children.Clear();
                 _atomVisuals.Clear();
                 _gameManager.ClearAtomWorkspace();
@@ -1418,7 +1411,7 @@ namespace BiochemSimulator
 
         private void CheckHazards()
         {
-            var hazard = _gameManager.Atomic.AnalyzeHazard(_createdMolecules);
+            var hazard = _gameManager.Atomic.AnalyzeHazard(_gameManager.CurrentMolecules);
 
             if (hazard.Level == HazardLevel.Safe)
             {
@@ -1452,7 +1445,7 @@ namespace BiochemSimulator
             _gameManager.ClearAtomWorkspace();
             AtomicCanvas.Children.Clear();
             _atomVisuals.Clear();
-            _createdMolecules.Clear();
+            _gameManager.ClearMolecules();
 
             WorkspaceAtomsList.ItemsSource = null;
             MoleculeDisplayPanel.Visibility = Visibility.Collapsed;
@@ -1539,16 +1532,11 @@ namespace BiochemSimulator
                     return;
                 }
 
-                // Create a game save object
-                var gameSave = new GameSave
-                {
-                    SaveName = saveName,
-                    PlayerName = _currentProfile.PlayerName,
-                    SaveDate = DateTime.Now,
-                    PlayTimeSeconds = (int)(DateTime.Now - _sessionStartTime).TotalSeconds,
-                    CurrentState = _gameManager.CurrentState,
-                    CurrentPhase = _gameManager.CurrentPhase
-                };
+                // Create a game save object capturing the full live workspace
+                var gameSave = _gameManager.CreateGameSave(
+                    saveName,
+                    _currentProfile.PlayerName,
+                    (int)(DateTime.Now - _sessionStartTime).TotalSeconds);
 
                 // Save the game
                 _saveManager.SaveGame(gameSave, _currentProfile.PlayerName);
@@ -1721,10 +1709,10 @@ namespace BiochemSimulator
         {
             try
             {
-                // Get all saves for current profile
-                var saves = _saveManager.GetSavesForProfile(_currentProfile.PlayerName);
+                // Get all saves for current profile, keeping each file's real path
+                var saveInfos = _saveManager.GetSaveFileInfosForProfile(_currentProfile.PlayerName);
 
-                if (saves.Count == 0)
+                if (saveInfos.Count == 0)
                 {
                     MessageBox.Show("No saved games found for this profile.",
                         "No Saves", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -1732,24 +1720,20 @@ namespace BiochemSimulator
                 }
 
                 // Create a simple list dialog
-                var saveNames = saves.Select(s => $"{s.SaveName} - {s.SaveDate:g}").ToList();
+                var saveNames = saveInfos.Select(s => $"{s.Save.SaveName} - {s.Save.SaveDate:g}").ToList();
                 var selectedSave = ShowSaveSelectionDialog(saveNames);
 
                 if (selectedSave != null)
                 {
                     var saveIndex = saveNames.IndexOf(selectedSave);
-                    if (saveIndex < 0 || saveIndex >= saves.Count)
+                    if (saveIndex < 0 || saveIndex >= saveInfos.Count)
                     {
                         MessageBox.Show("Error selecting save game.", "Selection Error",
                             MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
 
-                    var saveToLoad = saves[saveIndex];
-                    var saveFilePath = System.IO.Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                        "BiochemSimulator", "Saves", _currentProfile.PlayerName, $"{saveToLoad.SaveName}.json");
-
+                    var saveFilePath = saveInfos[saveIndex].FilePath;
                     System.Diagnostics.Debug.WriteLine($"Loading game from: {saveFilePath}");
 
                     if (!System.IO.File.Exists(saveFilePath))
@@ -1759,23 +1743,24 @@ namespace BiochemSimulator
                         return;
                     }
 
+                    // Re-read from disk so a corrupt file surfaces as a load error here.
                     var gameSave = _saveManager.LoadGame(saveFilePath);
 
                     if (gameSave != null)
                     {
-                        // Restore game state and phase
-                        _gameManager.ChangeState(gameSave.CurrentState);
-
-                        // Note: Full state restoration (atoms, molecules, organisms) would require
-                        // implementing serialization for those complex objects. For now, we just
-                        // restore the game state and phase.
+                        // Restore the full live workspace (atoms, molecules, organisms),
+                        // state and phase, then repaint the relevant view.
+                        _gameManager.LoadGameSave(gameSave);
+                        RefreshWorkspaceAfterLoad();
 
                         MessageBox.Show(
                             $"Game loaded successfully!\n\n" +
                             $"Save: {gameSave.SaveName}\n" +
                             $"State: {gameSave.CurrentState}\n" +
                             $"Phase: {gameSave.CurrentPhase}\n\n" +
-                            $"Note: Full workspace restoration coming soon!",
+                            $"Atoms: {gameSave.WorkspaceAtoms.Count}  " +
+                            $"Molecules: {gameSave.WorkspaceMolecules.Count}  " +
+                            $"Organisms: {gameSave.ActiveOrganisms.Count}",
                             "Game Loaded",
                             MessageBoxButton.OK,
                             MessageBoxImage.Information);
@@ -1797,6 +1782,73 @@ namespace BiochemSimulator
                     "Load Error",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>
+        /// Repaints the view after a load. The game manager has already switched
+        /// state (which swapped the visible panel) and restored the data; this
+        /// rebuilds the visuals that the normal gameplay handlers would have drawn.
+        /// </summary>
+        private void RefreshWorkspaceAfterLoad()
+        {
+            // LoadGameSave does not raise PhaseChanged, so refresh phase UI directly.
+            PhaseText.Text = _gameManager.CurrentPhase.ToString();
+            UpdateChemicalInventory();
+
+            var state = _gameManager.CurrentState;
+
+            if (state == GameState.AtomicChemistry)
+            {
+                // Clear any stale visuals then repaint the restored placed atoms.
+                AtomicCanvas.Children.Clear();
+                _atomVisuals.Clear();
+
+                foreach (var atom in _gameManager.CurrentAtomWorkspace)
+                {
+                    CreateAtomVisual(atom);
+                }
+
+                WorkspaceAtomsList.ItemsSource = null;
+                WorkspaceAtomsList.ItemsSource = _gameManager.CurrentAtomWorkspace;
+                WorkspaceInstructions.Visibility =
+                    _gameManager.CurrentAtomWorkspace.Count > 0 ? Visibility.Collapsed : Visibility.Visible;
+
+                // Repaint bonds for restored molecules and show the most recent one.
+                var molecules = _gameManager.CurrentMolecules;
+                foreach (var molecule in molecules)
+                {
+                    DrawMoleculeBonds(molecule);
+                }
+
+                if (molecules.Count > 0)
+                {
+                    var last = molecules[molecules.Count - 1];
+                    MoleculeDisplayPanel.Visibility = Visibility.Visible;
+                    MoleculeFormulaText.Text = last.Formula;
+                    MoleculeNameText.Text = last.Name;
+                    MoleculeStabilityText.Text = $"Stability: {last.Stability}";
+                    MoleculeStabilityText.Foreground = last.Stability switch
+                    {
+                        MoleculeStability.Stable => Brushes.LightGreen,
+                        MoleculeStability.Metastable => Brushes.Yellow,
+                        MoleculeStability.Unstable => Brushes.Orange,
+                        MoleculeStability.Explosive => Brushes.Red,
+                        _ => Brushes.White
+                    };
+                }
+                else
+                {
+                    MoleculeDisplayPanel.Visibility = Visibility.Collapsed;
+                }
+
+                CombineMoleculesButton.IsEnabled = molecules.Count >= 2;
+                AtomicStatusText.Text = "Game loaded. Continue your experiment.";
+            }
+            else if (state == GameState.VirusOutbreak || state == GameState.ChemicalWarfare)
+            {
+                UpdateOrganismDisplay();
+                UpdateOrganismStats();
             }
         }
 

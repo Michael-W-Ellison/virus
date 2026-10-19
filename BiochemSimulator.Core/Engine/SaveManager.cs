@@ -157,7 +157,17 @@ namespace BiochemSimulator.Engine
 
         public List<GameSave> GetSavesForProfile(string playerName)
         {
-            var saves = new List<GameSave>();
+            return GetSaveFileInfosForProfile(playerName).Select(info => info.Save).ToList();
+        }
+
+        /// <summary>
+        /// Returns each save for a profile paired with the actual file it came from.
+        /// Callers need the concrete path because save file names embed a timestamp,
+        /// so the path cannot be reconstructed from the save name alone.
+        /// </summary>
+        public List<SaveFileInfo> GetSaveFileInfosForProfile(string playerName)
+        {
+            var saves = new List<SaveFileInfo>();
 
             try
             {
@@ -170,11 +180,11 @@ namespace BiochemSimulator.Engine
                     var save = JsonConvert.DeserializeObject<GameSave>(json);
                     if (save != null)
                     {
-                        saves.Add(save);
+                        saves.Add(new SaveFileInfo { Save = save, FilePath = file });
                     }
                 }
 
-                return saves.OrderByDescending(s => s.SaveDate).ToList();
+                return saves.OrderByDescending(s => s.Save.SaveDate).ToList();
             }
             catch (Exception ex)
             {
@@ -280,5 +290,11 @@ namespace BiochemSimulator.Engine
         public string GetProfilesFolderPath() => _profilesFolderPath;
 
         #endregion
+    }
+
+    public class SaveFileInfo
+    {
+        public GameSave Save { get; set; } = new GameSave();
+        public string FilePath { get; set; } = string.Empty;
     }
 }

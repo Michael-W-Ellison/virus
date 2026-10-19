@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Portable simulation core. Targets plain net8.0 (no -windows, no WPF) so the
+    engine and models can be referenced from any .NET 8 host: the WPF desktop
+    app, the test project, or a future cross-platform UI.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>BiochemSimulator.Core</AssemblyName>
+    <RootNamespace>BiochemSimulator</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+</Project>

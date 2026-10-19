@@ -1,7 +1,7 @@
 using BiochemSimulator.Engine;
 using BiochemSimulator.Models;
 using System.Linq;
-using System.Windows.Media;
+using BiochemSimulator.Core.Primitives;
 using Xunit;
 
 namespace BiochemSimulator.Tests.Engine

@@ -276,15 +276,30 @@ MessageBox.Show(
 
 ## 4. Project Structure
 
+The simulation logic was extracted into a portable `BiochemSimulator.Core`
+class library targeting plain `net8.0` (no `-windows`, no WPF). The WPF app and
+the test project both reference it. The core carries no Windows dependency:
+`System.Windows.Point` / `System.Windows.Media.Color` were replaced with
+framework-neutral primitives in `BiochemSimulator.Core.Primitives`, and the
+timed phase transitions that used `Application.Current.Dispatcher` now go
+through an injected `IGameScheduler` (the WPF app supplies a dispatcher-backed
+implementation; the default runs on the thread pool). The WPF layer converts
+between core and WPF `Point`/`Color` at a single boundary (`Interop/WpfInterop`).
+
 ```
 BiochemSimulator/
-├── BiochemSimulator.csproj (Modified - excludes test files)
-├── BiochemSimulator.sln (Created - solution file)
-├── MainWindow.xaml (Modified - menu, improved styles)
-├── MainWindow.xaml.cs (Modified - many fixes)
-├── Engine/
-│   └── GameManager.cs (Modified - progression delay)
-└── BiochemSimulator.Tests/
+├── BiochemSimulator.csproj (WPF app - net8.0-windows; references Core)
+├── BiochemSimulator.sln
+├── MainWindow.xaml / .xaml.cs (WPF presentation)
+├── Interop/
+│   ├── WpfInterop.cs (core <-> WPF Point/Color conversions)
+│   └── DispatcherGameScheduler.cs (IGameScheduler on the UI thread)
+├── BiochemSimulator.Core/ (portable net8.0 library)
+│   ├── BiochemSimulator.Core.csproj
+│   ├── Primitives/  (Point, Color, Colors - framework-neutral)
+│   ├── Models/
+│   └── Engine/      (GameManager, IGameScheduler, engines, SaveManager)
+└── BiochemSimulator.Tests/ (net8.0; references Core, runs on any OS)
     ├── BiochemSimulator.Tests.csproj (Created)
     ├── README.md (Created - comprehensive test documentation)
     ├── Models/
@@ -350,8 +365,14 @@ dotnet test --collect:"XPlat Code Coverage"
 - Drag-and-drop interactions
 
 ### Partial Implementation
-- **Save/Load System**: Currently saves game state and phase, but not full workspace (atoms, molecules, organisms with positions)
-- **Full Workspace Restoration**: Would require serialization of WPF objects (Point, Color, Visual elements)
+- **Save/Load System**: Now saves and restores the full live workspace — placed
+  atoms (symbol + position), built molecules (atoms, bonds, formula, position),
+  and active organisms (position, health, size, generation, color, reproduction
+  and mutation rates, resistances) — along with game state and phase. Conversion
+  between the domain objects and the JSON-friendly `Serializable*` types lives in
+  `GameManager.CreateGameSave` / `LoadGameSave`; restoring the outbreak does not
+  re-seed organisms. Round-trip coverage is in `GameManagerSaveLoadTests`.
+- **Transient beaker contents** are intentionally not persisted (cleared on load).
 
 ### Expected Behaviors
 - **Two Water Molecules**: H₂O + H₂O has no reaction defined (expected)
@@ -409,10 +430,10 @@ If you're not seeing the visual improvements:
 - [ ] Integration tests for complete game workflows
 - [ ] Performance benchmarks for 500+ organisms
 - [ ] UI automation tests with WPF testing framework
-- [ ] Save/Load round-trip tests with full workspace
+- [x] Save/Load round-trip tests with full workspace
 
 ### Features
-- [ ] Full workspace serialization (atoms, molecules, organisms with positions)
+- [x] Full workspace serialization (atoms, molecules, organisms with positions)
 - [ ] Online save synchronization
 - [ ] Multiplayer/networking (if planned)
 - [ ] Achievement tracking in save files
